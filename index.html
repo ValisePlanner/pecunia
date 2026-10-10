@@ -1,0 +1,2750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B1F3A">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Livro Caixa: controle financeiro pessoal com saldos por instituição, movimentações, orçamento e gráficos. Funciona offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Livro Caixa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Livro Caixa — Controle Financeiro Pessoal</title>
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="vendor/chart.umd.js"></script>
+<style>
+:root{
+  /* Paleta Kairos: azul-noite e off-white de base, dourado de destaque/projetado, verde/vermelho para alta/baixa */
+  --paper:#F5F2EA;
+  --paper-alt:#ECE7DA;
+  --ink:#0B1F3A;
+  --ink-soft:#5B6B7F;
+  --line:#DDD6C5;
+  --line-strong:#B7AE98;
+  --green:#0B7A53;
+  --green-bg:#DDF1E7;
+  --red:#C42B2B;
+  --red-bg:#FBE3E1;
+  --gold:#B08A32;
+  --gold-bg:#F3E9CF;
+  --gold-ink:#7A5C14;
+  --radius:6px;
+  --shadow:0 1px 2px rgba(11,31,58,0.10);
+}
+*{box-sizing:border-box;}
+html,body{overflow-x:clip;max-width:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1040px;margin:0 auto;padding:36px 24px 80px;}
+
+/* Header */
+.masthead{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  border-bottom:2px solid var(--ink);
+  padding-bottom:16px;margin-bottom:28px;
+  flex-wrap:wrap;gap:12px;
+}
+.masthead h1{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:600;
+  font-size:32px;
+  margin:0;
+  letter-spacing:-0.01em;
+}
+.masthead .sub{
+  font-size:12.5px;color:var(--ink-soft);
+  font-family:'IBM Plex Mono',monospace;
+  text-transform:uppercase;letter-spacing:0.06em;
+}
+.masthead .date-stamp{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;color:var(--ink-soft);
+  text-align:right;
+}
+
+/* Marca (Kairos Soluções) */
+.brand{display:flex;align-items:center;gap:14px;min-width:0;}
+.brand-mark{display:block;flex:none;width:50px;height:auto;color:var(--ink);}
+.site-foot{margin-top:48px;padding-top:22px;border-top:1px solid var(--line);}
+.foot-logo{display:block;width:250px;max-width:70%;height:auto;color:var(--ink);}
+
+/* Summary strip */
+.summary{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--line-strong);
+  border:1px solid var(--line-strong);
+  margin-bottom:28px;
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.summary .cell{
+  background:var(--paper);
+  padding:16px 20px;
+}
+.summary .cell .label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--ink-soft);margin-bottom:6px;
+}
+.summary .cell .label span{color:var(--gold-ink);text-transform:none;letter-spacing:0;font-style:italic;}
+.summary .cell .value{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:24px;font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.summary .cell.entradas .value{color:var(--green);}
+.summary .cell.saidas .value{color:var(--red);}
+.summary .cell.saldo .value{color:var(--ink);}
+.summary .cell.saldo{position:relative;border-left:3px solid var(--ink);}
+.summary .cell.saldo.positivo{background:var(--green-bg);border-left-color:var(--green);}
+.summary .cell.saldo.positivo .value{color:var(--green);}
+.summary .cell.saldo.negativo{background:var(--red-bg);border-left-color:var(--red);}
+.summary .cell.saldo.negativo .value{color:var(--red);}
+.summary .cell.projetado{background:var(--gold-bg);}
+.summary .cell.projetado .value{color:var(--gold);}
+
+/* Summary institution quick filter */
+.summary-filter{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;
+}
+.summary-filter label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--ink-soft);
+}
+.summary-filter select{
+  font-family:'Inter',sans-serif;font-size:13px;padding:6px 10px;
+  border:1px solid var(--line-strong);border-radius:4px;
+  background:var(--paper);color:var(--ink);
+}
+
+/* Filter indicator */
+.filter-indicator{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:var(--gold-bg);border:1px dashed var(--gold);border-radius:var(--radius);
+  padding:8px 14px;margin-bottom:20px;
+  font-size:12.5px;color:var(--ink);
+}
+.filter-indicator button{
+  background:var(--gold);color:#fff;border:none;border-radius:4px;
+  padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;
+}
+.filter-indicator button:hover{opacity:.85;}
+
+/* Sticky header */
+.sticky-header{
+  position:sticky;top:0;z-index:30;
+  background:var(--paper);
+  padding-top:36px;
+  margin-top:-36px;
+}
+
+/* Tabs */
+.tabs{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  max-width:100%;
+  border-bottom:2px solid var(--ink);
+  margin-bottom:24px;
+}
+.tabs-scroll{
+  display:flex;gap:4px;min-width:0;flex:1;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.tabs-actions{
+  display:flex;gap:8px;align-items:center;flex-shrink:0;padding-bottom:6px;
+}
+.tab-btn{
+  font-family:'Cormorant Garamond',serif;font-weight:600;font-size:15px;
+  background:transparent;border:none;
+  padding:10px 18px;cursor:pointer;
+  color:var(--ink-soft);
+  border-bottom:3px solid transparent;
+  margin-bottom:-2px;
+  white-space:nowrap;
+}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--gold);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* Panels */
+.panel{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  margin-bottom:24px;
+  box-shadow:var(--shadow);
+}
+.panel-head{
+  padding:14px 18px;
+  border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;
+}
+.panel-head h2{
+  font-family:'Cormorant Garamond',serif;
+  font-size:16px;font-weight:600;margin:0;
+}
+.panel-body{padding:18px;}
+
+.help-body{display:flex;flex-direction:column;gap:20px;}
+.help-section h3{
+  font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;
+  margin:0 0 8px;color:var(--ink);
+}
+.help-section p{margin:0 0 8px;font-size:13.5px;line-height:1.55;color:var(--ink-soft);}
+.help-section ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px;}
+.help-section li{font-size:13.5px;line-height:1.55;color:var(--ink-soft);}
+.help-section li strong{color:var(--ink);}
+.help-tip{
+  background:var(--gold-bg);border:1px dashed var(--gold);border-radius:var(--radius);
+  padding:12px 14px;font-size:13px;color:var(--ink);line-height:1.55;
+}
+
+/* Form */
+.entry-form{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.entry-form .field{flex:1 1 150px;}
+.entry-form .field.wide{flex:2 1 220px;}
+.entry-form .actions{flex:1 0 100%;display:flex;gap:8px;margin-top:2px;}
+.form-section{display:flex;flex-wrap:wrap;gap:12px;flex:1 1 100%;}
+.form-repeticao{
+  background:var(--paper-alt);border:1px dashed var(--line-strong);border-radius:var(--radius);
+  padding:14px 14px 2px;margin-top:2px;
+}
+.form-section-label{
+  flex:1 0 100%;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--ink-soft);font-weight:600;margin-bottom:2px;
+}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{
+  font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--ink-soft);font-weight:600;
+}
+input,select{
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  padding:9px 10px;
+  border:1px solid var(--line-strong);
+  border-radius:4px;
+  background:#fff;
+  color:var(--ink);
+}
+input:focus,select:focus{
+  outline:2px solid var(--gold);
+  outline-offset:-1px;
+}
+input[type=number]{font-family:'IBM Plex Mono',monospace;}
+.type-toggle{display:flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;}
+.type-toggle button{
+  flex:1;padding:9px 8px;border:none;background:#fff;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink-soft);
+}
+.type-toggle button.active.entrada{background:var(--green-bg);color:var(--green);}
+.type-toggle button.active.saida{background:var(--red-bg);color:var(--red);}
+.btn-add{
+  padding:9px 18px;
+  background:var(--ink);color:var(--paper);
+  border:none;border-radius:4px;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:14px;
+  cursor:pointer;white-space:nowrap;
+}
+.btn-add:hover{background:#16345E;}
+
+/* Filters */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding-top:12px;}
+.filters .field{min-width:130px;}
+.filters .field.search{min-width:200px;flex:1;}
+.filters-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px;}
+.filters-bar .field.search{flex:1;min-width:200px;margin-bottom:0;}
+.filters-details{flex:1 1 auto;min-width:180px;}
+.filters-details summary{
+  cursor:pointer;list-style:none;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink-soft);
+  padding:9px 14px;border:1px solid var(--line-strong);border-radius:4px;
+  display:inline-flex;align-items:center;gap:6px;user-select:none;
+}
+.filters-details summary::-webkit-details-marker{display:none;}
+.filters-details summary::before{content:'▸';font-size:10px;color:var(--gold);transition:transform .15s ease;}
+.filters-details[open] summary::before{transform:rotate(90deg);}
+.filters-details summary:hover{border-color:var(--ink);color:var(--ink);}
+.filters-details[open] summary{background:var(--paper-alt);border-color:var(--ink);color:var(--ink);margin-bottom:2px;}
+.btn-clear{
+  padding:9px 14px;background:transparent;border:1px solid var(--line-strong);
+  border-radius:4px;font-family:'Inter',sans-serif;font-size:13px;color:var(--ink-soft);
+  cursor:pointer;font-weight:600;
+}
+.btn-clear:hover{border-color:var(--ink);color:var(--ink);}
+.text-link{
+  background:none;border:none;color:var(--ink-soft);cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;
+  text-decoration:underline;text-underline-offset:2px;padding:4px 2px;
+}
+.text-link:hover{color:var(--ink);}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;flex-shrink:0;
+  background:transparent;border:1px solid var(--line-strong);border-radius:4px;
+  color:var(--ink-soft);cursor:pointer;
+}
+.icon-btn:hover{border-color:var(--ink);color:var(--ink);background:var(--paper-alt);}
+.icon-btn svg{width:16px;height:16px;}
+.icon-btn.export{border-color:var(--green);color:var(--green);background:var(--green-bg);}
+.icon-btn.export:hover{background:var(--green);color:#fff;}
+.icon-btn.import{border-color:var(--gold);color:var(--gold-ink);background:var(--gold-bg);}
+.icon-btn.import:hover{background:var(--gold);color:#fff;}
+
+/* Table */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -18px;padding:0 18px;max-width:calc(100% + 36px);}
+table{width:100%;min-width:640px;border-collapse:collapse;font-size:14px;}
+thead th{
+  text-align:left;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--ink-soft);
+  padding:8px 10px;
+  border-bottom:2px solid var(--ink);
+}
+thead th.num{text-align:right;}
+thead th[data-sort]{cursor:pointer;user-select:none;}
+thead th[data-sort]:hover{color:var(--ink);}
+.sort-ind{font-size:9px;color:var(--gold);margin-left:3px;display:inline-block;width:8px;}
+tbody tr{border-bottom:1px solid var(--line);}
+tbody tr:nth-child(even){background:var(--paper-alt);}
+tbody td{padding:10px;vertical-align:middle;}
+tbody td.num{
+  text-align:right;font-family:'IBM Plex Mono',monospace;
+  font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+tbody td.date{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);white-space:nowrap;}
+.tag{
+  display:inline-block;padding:2px 8px;border-radius:20px;
+  font-size:11.5px;font-weight:600;
+  background:var(--gold-bg);color:var(--gold-ink);
+}
+.badge-previsto{
+  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  border:1px dashed var(--ink-soft);color:var(--ink-soft);
+  vertical-align:middle;
+}
+.badge-grupo{
+  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.02em;
+  background:var(--gold-bg);color:var(--gold-ink);
+  vertical-align:middle;
+}
+.badge-grupo.recorrente{background:var(--green-bg);color:var(--green);}
+.badge-confirmado{
+  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  background:var(--green-bg);color:var(--green);
+  vertical-align:middle;
+}
+.badge-atrasado{
+  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  background:var(--red-bg);color:var(--red);
+  vertical-align:middle;
+}
+.chk-previsto{
+  display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;margin-right:4px;vertical-align:middle;
+}
+.chk-previsto input{
+  width:16px;height:16px;cursor:pointer;accent-color:var(--green);
+}
+.field-preview{
+  flex:1 1 100%;
+  font-size:12.5px;color:var(--ink-soft);
+  background:var(--paper-alt);border:1px dashed var(--line-strong);
+  border-radius:4px;padding:8px 12px;
+  font-family:'IBM Plex Mono',monospace;
+}
+tbody tr.previsto{font-style:italic;}
+tbody tr.previsto td.date{font-style:normal;}
+tbody tr.previsto .amount-entrada,
+tbody tr.previsto .amount-saida{opacity:.75;}
+.amount-entrada{color:var(--green);}
+.amount-saida{color:var(--red);}
+.del-btn{
+  background:none;border:none;color:var(--ink-soft);cursor:pointer;
+  font-size:16px;line-height:1;padding:4px;
+}
+.del-btn:hover{color:var(--red);}
+.empty-row td{
+  text-align:center;padding:36px 10px;color:var(--ink-soft);
+  font-family:'IBM Plex Mono',monospace;font-size:13px;
+}
+
+/* Aba Saldos: o resumo geral fica oculto e a tabela por instituição ganha destaque */
+.summary-block.oculto{display:none;}
+.panel-destaque{border-top:3px solid var(--gold);box-shadow:0 2px 10px rgba(11,31,58,.08);}
+.panel-destaque .panel-head h2{font-size:22px;}
+.panel-destaque .table-saldos{font-size:15px;}
+.panel-destaque .table-saldos td.inst{font-size:16px;}
+.panel-destaque .table-saldos td.num{font-size:16px;}
+.panel-destaque .table-saldos tbody td,
+.panel-destaque .table-saldos tfoot td{padding-top:14px;padding-bottom:14px;}
+.panel-destaque .table-saldos tfoot td.num{font-size:18px;}
+.panel-destaque .table-saldos td.num.proj{font-size:17px;}
+
+/* Botão e janela de reset de dados */
+.text-link.reset{color:var(--red);}
+.text-link.reset:hover{color:var(--ink);}
+dialog.reset-dialog{
+  border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--paper);color:var(--ink);
+  padding:0;max-width:440px;width:calc(100% - 32px);box-shadow:0 12px 40px rgba(11,31,58,.25);
+}
+dialog.reset-dialog::backdrop{background:rgba(11,31,58,.45);}
+.reset-dialog .rd-head{padding:16px 20px;border-bottom:1px solid var(--line);font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;}
+.reset-dialog .rd-body{padding:16px 20px;font-size:14px;line-height:1.55;color:var(--ink-soft);}
+.reset-dialog .rd-body strong{color:var(--ink);}
+.reset-dialog .rd-actions{display:flex;flex-direction:column;gap:8px;padding:0 20px 18px;}
+.reset-dialog .rd-actions button{width:100%;}
+.btn-danger{
+  background:var(--red);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;padding:10px 16px;
+}
+.btn-danger:hover{opacity:.9;}
+@media (max-width:560px){ .text-link.reset .long{display:none;} }
+
+/* Saldos por instituição */
+.saldos-note{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin:0 0 16px;}
+.table-saldos{min-width:460px;}
+.table-saldos td.inst{font-weight:600;}
+.table-saldos td.inst.sem{font-weight:400;font-style:italic;color:var(--ink-soft);}
+.table-saldos td.num .sub{
+  display:block;margin-top:2px;
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:400;color:var(--ink-soft);
+}
+.table-saldos td.num.pos{color:var(--green);}
+.table-saldos td.num.neg{color:var(--red);}
+.table-saldos td.num.zero{color:var(--ink-soft);}
+.table-saldos th.proj,.table-saldos td.proj{background:var(--gold-bg);}
+.table-saldos td.num.proj{color:var(--ink);}
+.table-saldos td.num.proj.neg{color:var(--red);}
+.table-saldos tfoot td{
+  padding:12px 10px;border-top:2px solid var(--ink);
+  font-weight:600;
+}
+.table-saldos tfoot td.num{
+  text-align:right;font-family:'IBM Plex Mono',monospace;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.table-saldos tfoot td.proj{background:var(--gold-bg);}
+.table-saldos tfoot td.num.pos{color:var(--green);}
+.table-saldos tfoot td.num.neg{color:var(--red);}
+.table-saldos tfoot td.num.zero{color:var(--ink-soft);}
+.table-saldos tfoot td.num.proj{color:var(--ink);}
+.table-saldos tfoot td.num.proj.neg{color:var(--red);}
+
+/* Manage categories/institutions */
+.manage-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media (max-width:720px){.manage-grid{grid-template-columns:1fr;}}
+.manage-label{
+  font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--ink-soft);font-weight:600;margin-bottom:8px;
+}
+.manage-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.chip-list{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 6px 4px 10px;border-radius:20px;
+  background:var(--paper-alt);border:1px solid var(--line);
+  font-size:12.5px;color:var(--ink);
+}
+.chip button{
+  background:none;border:none;color:var(--ink-soft);cursor:pointer;
+  font-size:14px;line-height:1;padding:2px 4px;border-radius:50%;
+}
+.chip button:hover{color:var(--red);}
+.chip.entrada{border-color:var(--green);}
+.chip.saida{border-color:var(--red);}
+
+/* Budgets */
+.budget-item{padding:12px 0;border-bottom:1px solid var(--line);}
+.budget-item:last-child{border-bottom:none;}
+.budget-item .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:10px;}
+.budget-item .cat-name{font-weight:600;font-size:13.5px;}
+.budget-item .amounts{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);white-space:nowrap;}
+.budget-item .amounts .over-label{color:var(--red);font-weight:600;}
+.budget-bar-track{height:8px;background:var(--paper-alt);border-radius:4px;overflow:hidden;border:1px solid var(--line);display:flex;}
+.budget-bar-fill{height:100%;transition:width .3s ease;}
+.budget-bar-fill.ok{background:var(--green);}
+.budget-bar-fill.warn{background:var(--gold);}
+.budget-bar-fill.over{background:var(--red);}
+.budget-bar-fill.previsto{
+  background-image:repeating-linear-gradient(45deg, var(--gold) 0, var(--gold) 4px, var(--gold-bg) 4px, var(--gold-bg) 8px);
+  opacity:.85;
+}
+.budget-remove{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:13px;padding:2px 4px;}
+.budget-remove:hover{color:var(--red);}
+.budget-empty{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 0;}
+
+/* Charts */
+.charts-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;}
+@media (max-width:720px){.charts-grid{grid-template-columns:1fr;}}
+.chart-box h3{
+  font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;
+  margin:0 0 12px;color:var(--ink-soft);
+}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--ink-soft);}
+.legend span{display:flex;align-items:center;gap:5px;}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
+
+.legend-categoria-total{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:10px;margin-bottom:4px;border-bottom:2px solid var(--ink);
+}
+.legend-categoria-total span:first-child{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+.legend-categoria-total span:last-child{
+  font-family:'Cormorant Garamond',serif;font-weight:600;font-size:19px;color:var(--ink);
+}
+
+.legend-categoria{
+  display:flex;flex-direction:column;gap:0;margin-top:14px;font-size:0;
+}
+.legend-categoria .legend-row{
+  display:flex;align-items:center;gap:9px;padding:7px 2px;
+  border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink);
+  transition:background .15s ease;
+}
+.legend-categoria .legend-row:last-child{border-bottom:none;}
+.legend-categoria .legend-row:hover{background:var(--paper-alt);}
+.legend-categoria .legend-dot{
+  width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+  box-shadow:0 0 0 3px var(--paper-alt);
+}
+.legend-categoria .legend-name{
+  flex:1;display:flex;align-items:center;gap:6px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.legend-categoria .legend-bar{
+  flex:0 0 60px;height:4px;border-radius:2px;background:var(--line);
+  overflow:hidden;position:relative;
+}
+.legend-categoria .legend-bar-fill{
+  position:absolute;left:0;top:0;bottom:0;border-radius:2px;
+}
+.legend-categoria .legend-pct{
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);
+  flex:0 0 32px;text-align:right;
+}
+.legend-categoria .legend-value{
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink);
+  flex:0 0 76px;text-align:right;font-weight:600;
+}
+@media (max-width:480px){
+  .legend-categoria .legend-bar{display:none;}
+}
+
+@media (max-width:820px){
+  .entry-form .field{flex:1 1 130px;}
+  .summary{grid-template-columns:1fr 1fr;}
+}
+
+@media (max-width:600px){
+  .wrap{padding:20px 14px 60px;}
+  .sticky-header{padding-top:20px;margin-top:-20px;}
+  .masthead{align-items:flex-start;}
+  .masthead h1{font-size:24px;}
+  .brand{gap:10px;}
+  .brand-mark{width:38px;}
+  .masthead .date-stamp{text-align:left;}
+  .summary .cell{padding:14px 16px;}
+  .summary .cell .value{font-size:19px;}
+  .panel-head{padding:12px 14px;}
+  .panel-body{padding:14px;}
+  .table-scroll{margin:0 -14px;padding:0 14px;max-width:calc(100% + 28px);}
+  .entry-form{gap:10px;}
+  .entry-form .field{flex:1 1 100%;}
+  .entry-form .actions{flex-direction:column;}
+  .entry-form .actions button{width:100%;}
+  .filters{gap:8px;}
+  .filters .field{flex:1 1 100%;min-width:0;}
+  .filters .field.search{flex:1 1 100%;}
+  .filters .btn-clear{width:100%;}
+  .charts-grid{grid-template-columns:1fr;}
+  input,select{font-size:16px;}
+  .tabs{gap:6px;margin-bottom:18px;}
+  .tabs-scroll{gap:0;}
+  .tab-btn{font-size:13px;padding:9px 10px;}
+  .tabs-actions{gap:6px;}
+  /* Saldos: em telas estreitas, some a coluna "Previstos" para que saldo atual e projetado caibam sem rolagem */
+  .table-saldos{min-width:0;}
+  .table-saldos th:nth-child(3),
+  .table-saldos td:nth-child(3){display:none;}
+  .table-saldos thead th{padding:8px 6px;}
+  .table-saldos tbody td,
+  .table-saldos tfoot td{padding:10px 6px;}
+  .table-saldos td.num{font-size:13px;}
+}
+
+/* PWA: áreas seguras (notch / barra de gestos) e botão de instalar */
+.wrap{padding-top:max(36px,calc(env(safe-area-inset-top,0px) + 16px));padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));padding-bottom:max(80px,calc(env(safe-area-inset-bottom,0px) + 40px));}
+@media (max-width:560px){ .wrap{padding-top:max(20px,calc(env(safe-area-inset-top,0px) + 12px));padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));} }
+body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}
+#btn-instalar{display:none;color:var(--gold-ink);font-weight:600;}
+#btn-instalar.visivel{display:inline-flex;}
+.offline-badge{display:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold-ink);background:var(--gold-bg);border:1px solid var(--gold);border-radius:var(--radius);padding:2px 8px;margin-left:8px;}
+body.is-offline .offline-badge{display:inline-block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 56 56" role="img" aria-label="Kairos"><rect width="56" height="56" rx="8" fill="#0B1F3A"/><path d="M354.6449023226746 285.0Q353.9974626522802 285.0 353.9974626522802 283.7051206592113Q353.9974626522802 282.4102413184226 354.6449023226746 282.4102413184226Q361.91782376007035 282.4102413184226 367.863501776474 277.75941629842004Q373.80917979287767 273.10859127841746 377.8880549852396 262.7603182344547L421.96781367256483 150.3325485579753Q422.18362689602964 149.46929566411615 424.23385251894507 149.46929566411615Q426.2840781418605 149.46929566411615 426.71570458879006 150.3325485579753L480.79851946457484 267.087502452423Q484.46734426347615 275.1157438275579 488.47067692430915 278.76299257299024Q492.4740095851421 282.4102413184226 498.5059654710339 282.4102413184226Q499.15340514142827 282.4102413184226 499.15340514142827 283.7051206592113Q499.15340514142827 285.0 498.5059654710339 285.0Q495.67881751252276 285.0 493.3264744522667 284.7841867765352Q490.9741313920107 284.56837355307044 488.13619540676507 284.46046694133804Q485.2982594215195 284.35256032960564 481.3272644965023 284.35256032960564Q473.0399524134142 284.35256032960564 467.2669091691498 284.46046694133804Q461.4938659248854 284.56837355307044 457.39879552022796 284.7841867765352Q453.3037251155705 285.0 449.9694081786009 285.0Q449.3219685082065 285.0 449.3219685082065 283.7051206592113Q449.3219685082065 282.4102413184226 449.9694081786009 282.4102413184226Q458.6559035952522 282.4102413184226 461.9146780006929 278.5957122976368Q465.1734524061336 274.781183276851 461.31039043723644 266.5263143071292L417.0472089510375 170.09045728683847L424.8165376845449 157.7350316937353L383.0999627729854 263.76384182024964Q379.6901033044868 272.6769648314879 382.9758609489575 277.5436030749553Q386.26161859342824 282.4102413184226 397.66732901247065 282.4102413184226Q398.314768682865 282.4102413184226 398.314768682865 283.7051206592113Q398.314768682865 285.0 397.66732901247065 285.0Q392.12091336279315 285.0 387.0438954258097 284.67628016480285Q381.96687748882624 284.35256032960564 373.75516062604237 284.35256032960564Q367.59369573056154 284.35256032960564 363.8169643199278 284.67628016480285Q360.04023290929416 285.0 354.6449023226746 285.0Z" fill="#C9A24B" transform="translate(28 28) scale(0.235) translate(-426.9 -217.2)"/></svg>
+      <div>
+        <h1>Livro Caixa</h1>
+        <div class="sub">Controle financeiro pessoal</div>
+      </div>
+    </div>
+    <div class="date-stamp" id="today-stamp"></div>
+  </div>
+
+  <div class="sticky-header">
+  <div class="summary-block oculto" id="summary-block">
+  <div class="summary-filter">
+    <label for="sum-inst">Instituição</label>
+    <select id="sum-inst"><option value="">Todas</option></select>
+  </div>
+
+  <div class="summary">
+    <div class="cell entradas"><div class="label">Entradas realizadas</div><div class="value" id="sum-entradas">R$ 0,00</div></div>
+    <div class="cell saidas"><div class="label">Saídas realizadas</div><div class="value" id="sum-saidas">R$ 0,00</div></div>
+    <div class="cell saldo" id="cell-saldo"><div class="label">Saldo atual</div><div class="value" id="sum-saldo">R$ 0,00</div></div>
+    <div class="cell projetado"><div class="label">Saldo projetado <span id="sum-projetado-nota"></span></div><div class="value" id="sum-projetado">R$ 0,00</div></div>
+  </div>
+
+  <div class="filter-indicator" id="filtro-indicator" style="display:none;">
+    <span>🔎 Os valores acima refletem os filtros aplicados na tabela de movimentações.</span>
+    <button type="button" id="btn-ver-tudo">Ver tudo</button>
+  </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <div class="tabs-scroll">
+      <button class="tab-btn active" data-tab="tab-saldos" type="button" role="tab" aria-selected="true">Saldos</button>
+      <button class="tab-btn" data-tab="tab-mov" type="button" role="tab" aria-selected="false">Movimentações</button>
+      <button class="tab-btn" data-tab="tab-cat" type="button" role="tab" aria-selected="false">Categorias &amp; Orçamento</button>
+      <button class="tab-btn" data-tab="tab-graf" type="button" role="tab" aria-selected="false">Gráficos</button>
+      <button class="tab-btn" data-tab="tab-ajuda" type="button" role="tab" aria-selected="false">Como usar</button>
+    </div>
+    <div class="tabs-actions">
+      <span class="offline-badge" id="offline-badge" role="status">offline</span>
+      <button class="text-link" id="btn-instalar" type="button" title="Instalar o Livro Caixa como aplicativo">⭳ Instalar app</button>
+      <button class="text-link reset" id="btn-resetar" type="button" title="Resetar dados: restaurar os exemplos ou começar em branco">Resetar<span class="long"> dados</span></button>
+      <button class="text-link" id="btn-exportar-csv" type="button" title="Exportar apenas os lançamentos em CSV (planilha)">CSV</button>
+      <button class="icon-btn export" id="btn-exportar" type="button" title="Exportar backup completo (JSON)" aria-label="Exportar backup completo (JSON)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+      </button>
+      <button class="icon-btn import" id="btn-importar" type="button" title="Importar backup (JSON ou CSV)" aria-label="Importar backup (JSON ou CSV)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
+      <input type="file" id="input-importar" accept=".json,.csv" style="display:none;">
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-content active" id="tab-saldos">
+
+  <div class="panel panel-destaque">
+    <div class="panel-head"><h2>Saldo por instituição</h2></div>
+    <div class="panel-body">
+      <p class="saldos-note">Considera todo o histórico, sem depender dos filtros de período. O <strong>saldo atual</strong> conta só os lançamentos confirmados; o <strong>saldo projetado</strong> soma também os previstos.</p>
+      <div class="table-scroll">
+      <table class="table-saldos">
+        <thead>
+          <tr>
+            <th>Instituição</th>
+            <th class="num">Saldo atual</th>
+            <th class="num">Previstos</th>
+            <th class="num proj">Saldo projetado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-saldos"></tbody>
+        <tfoot id="tfoot-saldos"></tfoot>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>Saldo inicial</h2></div>
+    <div class="panel-body">
+      <p class="saldos-note">Começando um arquivo novo? Informe quanto cada instituição já tinha antes do primeiro lançamento registrado. O valor entra nos saldos, mas não é contado como entrada de receita. Use valor negativo se a conta começa no vermelho.</p>
+      <form class="entry-form" id="saldo-inicial-form">
+        <div class="field wide">
+          <label for="si-inst">Instituição</label>
+          <input type="text" id="si-inst" list="lista-instituicoes" placeholder="Ex: Nubank, Itaú..." required>
+        </div>
+        <div class="field">
+          <label for="si-valor">Saldo inicial (R$)</label>
+          <input type="number" id="si-valor" step="0.01" placeholder="0,00" required>
+        </div>
+        <div class="field">
+          <label for="si-data">Data</label>
+          <input type="date" id="si-data" required>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn-add">Definir saldo inicial</button>
+        </div>
+      </form>
+      <div class="manage-label" style="margin-top:20px;">Saldos iniciais definidos</div>
+      <div class="chip-list" id="chip-list-si"></div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-mov">
+
+  <div class="panel">
+    <div class="panel-head"><h2 id="form-title">Nova movimentação</h2></div>
+    <div class="panel-body">
+      <form class="entry-form" id="entry-form">
+        <div class="form-section">
+          <div class="field">
+            <label>Data</label>
+            <input type="date" id="f-date" required>
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <div class="type-toggle">
+              <button type="button" class="active entrada" data-type="entrada" id="btn-entrada">Entrada</button>
+              <button type="button" class="saida" data-type="saida" id="btn-saida">Saída</button>
+            </div>
+          </div>
+          <div class="field wide">
+            <label>Descrição</label>
+            <input type="text" id="f-desc" placeholder="Ex: Salário, Aluguel..." required>
+          </div>
+          <div class="field">
+            <label>Valor (R$) <span id="label-valor-hint" style="text-transform:none;font-weight:400;color:var(--ink-soft);"></span></label>
+            <input type="number" id="f-valor" min="0" step="0.01" placeholder="0,00" required>
+          </div>
+          <div class="field">
+            <label>Categoria</label>
+            <select id="f-cat"></select>
+          </div>
+          <div class="field">
+            <label>Forma de pagamento</label>
+            <select id="f-forma"></select>
+          </div>
+          <div class="field">
+            <label>Instituição</label>
+            <input type="text" id="f-inst" list="lista-instituicoes" placeholder="Ex: Nubank, Itaú...">
+            <datalist id="lista-instituicoes"></datalist>
+          </div>
+        </div>
+
+        <div class="form-section form-repeticao">
+          <div class="form-section-label">Repetição (opcional)</div>
+          <div class="field" id="field-repeticao">
+            <label>Repetição</label>
+            <select id="f-repeticao">
+              <option value="unico">Lançamento único</option>
+              <option value="parcelado">Parcelado (cartão / Pix)</option>
+              <option value="recorrente">Recorrente (assinatura, aluguel...)</option>
+            </select>
+          </div>
+          <div class="field-preview" id="edit-grupo-note" style="display:none;">
+            <div id="edit-grupo-texto"></div>
+            <button type="button" class="btn-add" id="btn-quitar-restante" style="margin-top:8px;background:var(--red);">Quitar parcelas restantes antecipadamente</button>
+          </div>
+          <div class="field" id="field-parcelas" style="display:none;">
+            <label>Número de parcelas</label>
+            <input type="number" id="f-parcelas" min="2" max="100" step="1" placeholder="Ex: 12">
+          </div>
+          <div class="field" id="field-recorrencia" style="display:none;">
+            <label>Repetir por quantos meses</label>
+            <input type="number" id="f-recorrencia-meses" min="2" max="120" step="1" placeholder="Ex: 12">
+          </div>
+          <div class="field-preview" id="repeticao-preview" style="display:none;"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn-add" id="btn-submit">Adicionar</button>
+          <button type="button" class="btn-clear" id="btn-cancelar-edicao" style="display:none;">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Movimentações</h2>
+    </div>
+    <div class="panel-body">
+      <div style="font-size:12px;color:var(--ink-soft);margin-bottom:16px;">O backup em JSON (ícone de disquete, no menu de abas acima) inclui lançamentos, orçamentos, categorias e instituições. O CSV traz só os lançamentos, para abrir em planilha.</div>
+      <div class="filters-bar">
+        <div class="field search">
+          <label>Buscar</label>
+          <input type="text" id="fl-busca" placeholder="Buscar descrição...">
+        </div>
+        <details class="filters-details">
+          <summary>Filtros avançados</summary>
+          <div class="filters">
+            <div class="field">
+              <label>De</label>
+              <input type="date" id="fl-de">
+            </div>
+            <div class="field">
+              <label>Até</label>
+              <input type="date" id="fl-ate">
+            </div>
+            <div class="field">
+              <label>Tipo</label>
+              <select id="fl-tipo">
+                <option value="">Todos</option>
+                <option value="entrada">Entradas</option>
+                <option value="saida">Saídas</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Situação</label>
+              <select id="fl-situacao">
+                <option value="">Todas</option>
+                <option value="realizado">Realizados</option>
+                <option value="previsto">Previstos</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Categoria</label>
+              <select id="fl-cat"><option value="">Todas</option></select>
+            </div>
+            <div class="field">
+              <label>Forma de pagamento</label>
+              <select id="fl-forma"><option value="">Todas</option></select>
+            </div>
+            <div class="field">
+              <label>Instituição</label>
+              <select id="fl-inst"><option value="">Todas</option></select>
+            </div>
+            <button class="btn-clear" id="btn-limpar-filtros" type="button">Limpar filtros</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="date">Data <span class="sort-ind" data-col="date"></span></th>
+            <th data-sort="desc">Descrição <span class="sort-ind" data-col="desc"></span></th>
+            <th data-sort="cat">Categoria <span class="sort-ind" data-col="cat"></span></th>
+            <th>Pagamento</th>
+            <th class="num" data-sort="valor">Valor <span class="sort-ind" data-col="valor"></span></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-cat">
+
+  <div class="panel">
+    <div class="panel-head"><h2>Categorias e instituições</h2></div>
+    <div class="panel-body">
+      <div class="manage-grid">
+        <div>
+          <div class="manage-label">Nova categoria</div>
+          <div class="manage-row">
+            <select id="newcat-tipo" style="flex:0 0 110px;">
+              <option value="saida">Saída</option>
+              <option value="entrada">Entrada</option>
+            </select>
+            <input type="text" id="newcat-nome" placeholder="Nome da categoria" style="flex:1;">
+            <button type="button" class="btn-add" id="btn-add-cat">Adicionar</button>
+          </div>
+          <div class="chip-list" id="chip-list-cat"></div>
+        </div>
+        <div>
+          <div class="manage-label">Nova instituição</div>
+          <div class="manage-row">
+            <input type="text" id="newinst-nome" placeholder="Nome da instituição" style="flex:1;">
+            <button type="button" class="btn-add" id="btn-add-inst">Adicionar</button>
+          </div>
+          <div class="chip-list" id="chip-list-inst"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Orçamento mensal por categoria</h2>
+      <div class="date-stamp" id="orcamento-mes-label"></div>
+    </div>
+    <div class="panel-body">
+      <div class="filters" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Categoria</label>
+          <select id="bg-cat"></select>
+        </div>
+        <div class="field">
+          <label>Limite mensal (R$)</label>
+          <input type="number" id="bg-valor" min="0" step="0.01" placeholder="0,00">
+        </div>
+        <button class="btn-add" id="btn-bg-salvar" type="button">Definir limite</button>
+      </div>
+      <div id="budget-list"></div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-graf">
+
+  <div class="panel">
+    <div class="panel-head"><h2>Gráficos</h2></div>
+    <div class="panel-body">
+      <details class="filters-details" style="margin-bottom:18px;">
+        <summary>Filtros avançados</summary>
+        <div class="filters">
+          <div class="field">
+            <label>De</label>
+            <input type="date" id="gf-de">
+          </div>
+          <div class="field">
+            <label>Até</label>
+            <input type="date" id="gf-ate">
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <select id="gf-tipo">
+              <option value="">Todos</option>
+              <option value="entrada">Entradas</option>
+              <option value="saida">Saídas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Situação</label>
+            <select id="gf-situacao">
+              <option value="">Todas</option>
+              <option value="realizado">Realizados</option>
+              <option value="previsto">Previstos</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Categoria</label>
+            <select id="gf-cat"><option value="">Todas</option></select>
+          </div>
+          <div class="field">
+            <label>Forma de pagamento</label>
+            <select id="gf-forma"><option value="">Todas</option></select>
+          </div>
+          <div class="field">
+            <label>Instituição</label>
+            <select id="gf-inst"><option value="">Todas</option></select>
+          </div>
+          <button class="btn-clear" id="btn-limpar-filtros-graf" type="button">Limpar filtros</button>
+        </div>
+      </details>
+      <div class="filter-indicator" id="filtro-indicator-graf" style="display:none;margin-bottom:18px;">
+        <span>🔎 Gráficos filtrados de forma independente da aba Movimentações.</span>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-box">
+          <h3>Entradas x saídas por mês</h3>
+          <div style="position:relative;height:260px;">
+            <canvas id="chart-mensal" role="img" aria-label="Gráfico de barras comparando entradas e saídas por mês">Comparativo mensal de entradas e saídas.</canvas>
+          </div>
+        </div>
+        <div class="chart-box">
+          <h3>Saídas por categoria</h3>
+          <div class="legend-categoria-total" id="legend-categoria-total">
+            <span>Total de saídas</span>
+            <span id="legend-categoria-total-value">R$ 0</span>
+          </div>
+          <div class="legend legend-categoria" id="legend-categoria"></div>
+        </div>
+      </div>
+      <div class="chart-box" style="margin-top:24px;">
+        <h3>Evolução do saldo</h3>
+        <div style="position:relative;height:220px;">
+          <canvas id="chart-saldo" role="img" aria-label="Gráfico de linha mostrando a evolução do saldo acumulado ao longo do tempo, com trecho tracejado indicando lançamentos futuros">Evolução do saldo acumulado.</canvas>
+        </div>
+        <div class="legend" id="legend-saldo"></div>
+      </div>
+      <div class="chart-box" style="margin-top:24px;">
+        <h3>Saldo final por mês</h3>
+        <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">Saldo acumulado (todo o histórico) ao final de cada mês. Não é afetado pelo filtro De/Até acima.</div>
+        <div style="position:relative;height:240px;">
+          <canvas id="chart-saldo-mensal" role="img" aria-label="Gráfico de barras mostrando o saldo acumulado final de cada mês">Saldo final acumulado por mês.</canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-ajuda">
+    <div class="panel">
+      <div class="panel-head"><h2>Como usar o Livro Caixa</h2></div>
+      <div class="panel-body help-body">
+
+        <div class="help-section">
+          <h3>1. Saldos por instituição</h3>
+          <p>A aba <strong>Saldos</strong> é a primeira que aparece ao abrir o app. Ela mostra, para cada banco, carteira ou instituição que você já usou nos lançamentos:</p>
+          <ul>
+            <li><strong>Saldo atual:</strong> quanto há hoje, contando só os lançamentos confirmados.</li>
+            <li><strong>Previstos:</strong> a diferença que os lançamentos ainda não confirmados vão causar (e quantos são).</li>
+            <li><strong>Saldo projetado:</strong> o saldo atual somado aos previstos.</li>
+          </ul>
+          <p>Os valores consideram todo o histórico e não mudam com os filtros de período. Lançamentos sem instituição preenchida aparecem em <em>Sem instituição</em>, e a última linha soma tudo.</p>
+          <p><strong>Começando um arquivo novo?</strong> No painel <em>Saldo inicial</em>, dessa mesma aba, informe quanto cada instituição já tinha antes do primeiro lançamento registrado. O valor entra nos saldos (atual e projetado) e nos gráficos de saldo, mas não conta como entrada nos totais do resumo nem no gráfico de entradas x saídas. Use um valor negativo se a conta começa no vermelho. Para corrigir, defina de novo para a mesma instituição (o anterior é substituído) ou clique no × do saldo definido.</p>
+        </div>
+
+        <div class="help-section">
+          <h3>2. Lançando movimentações</h3>
+          <p>Na aba <strong>Movimentações</strong>, use o formulário para registrar uma entrada (receita) ou saída (despesa). Preencha:</p>
+          <ul>
+            <li><strong>Tipo:</strong> Entrada ou Saída.</li>
+            <li><strong>Valor, data, categoria, forma de pagamento e instituição.</strong></li>
+            <li><strong>Confirmado/Previsto:</strong> marque como confirmado quando o dinheiro já entrou ou saiu de fato. Deixe como previsto para lançamentos futuros (contas a pagar/receber), que entram no <em>saldo projetado</em> mas não no <em>saldo atual</em>.</li>
+            <li><strong>Parcelado:</strong> ao marcar essa opção e informar o número de parcelas, o app cria automaticamente um lançamento por mês, um para cada parcela.</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>3. Entendendo o resumo no topo</h3>
+          <ul>
+            <li><strong>Entradas / Saídas realizadas:</strong> soma dos lançamentos já confirmados dentro do período filtrado.</li>
+            <li><strong>Saldo atual:</strong> saldo real, considerando apenas lançamentos confirmados — e já soma o que veio de meses/períodos anteriores, então continua de onde parou mesmo ao virar o mês.</li>
+            <li><strong>Saldo projetado:</strong> igual ao saldo atual, mas somando também os lançamentos previstos (ainda não confirmados), para você ver como fica o saldo se tudo se concretizar.</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>4. Filtrando a tabela</h3>
+          <p>Use os filtros (período, tipo, situação, categoria, forma de pagamento, instituição) para restringir o que aparece na tabela e no resumo. Quando algum filtro estiver ativo, aparece um aviso com o botão <strong>"Ver tudo"</strong> para limpar tudo de uma vez.</p>
+          <p><strong>Por que o app abre filtrado no mês atual?</strong> Sempre que você carrega o app (ou o arquivo/backup), o filtro de período "De/Até" já vem preenchido automaticamente do dia 1º ao último dia do mês corrente. Isso é só para deixar a tela inicial mais enxuta, mostrando de cara os lançamentos mais recentes — mas não significa que os meses anteriores foram apagados ou ignorados.</p>
+          <ul>
+            <li><strong>Entradas/Saídas realizadas</strong> mostradas no resumo refletem apenas o período filtrado (por padrão, o mês atual).</li>
+            <li>Já o <strong>Saldo atual</strong> e o <strong>Saldo projetado</strong> continuam contando todo o histórico anterior ao início do filtro — por isso o saldo não "zera" quando o mês vira, mesmo que ainda não haja nenhum lançamento novo.</li>
+            <li>Para ver o extrato completo, com todos os meses juntos, basta clicar em <strong>"Ver tudo"</strong> ou apagar as datas dos campos "De" e "Até".</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>5. Categorias &amp; Orçamento</h3>
+          <p>Na aba <strong>Categorias &amp; Orçamento</strong> você pode criar categorias personalizadas e definir um orçamento mensal por categoria de saída. O app mostra quanto já foi gasto em relação ao limite definido.</p>
+        </div>
+
+        <div class="help-section">
+          <h3>6. Gráficos</h3>
+          <ul>
+            <li><strong>Entradas x saídas por mês:</strong> comparativo mensal.</li>
+            <li><strong>Saídas por categoria:</strong> para onde o dinheiro está indo.</li>
+            <li><strong>Evolução do saldo:</strong> linha do saldo acumulado ao longo do tempo, com trecho tracejado para lançamentos previstos/futuros.</li>
+            <li><strong>Saldo final por mês:</strong> barras com o saldo acumulado (todo o histórico) no fim de cada mês — não é afetado pelo filtro de período, só pelos demais filtros (tipo, categoria, etc).</li>
+          </ul>
+          <p>Os filtros dessa aba são independentes dos filtros da aba Movimentações.</p>
+        </div>
+
+        <div class="help-section">
+          <h3>7. Backup e importação</h3>
+          <ul>
+            <li><strong>Ícone de exportar (⭳):</strong> baixa um backup completo em JSON (lançamentos, categorias e orçamentos).</li>
+            <li><strong>Ícone de importar:</strong> restaura um backup JSON ou importa lançamentos de um CSV.</li>
+            <li><strong>Botão "CSV":</strong> exporta somente os lançamentos em planilha, para abrir no Excel/Google Sheets.</li>
+          </ul>
+        </div>
+
+        <div class="help-tip">
+          💡 <strong>Dica:</strong> seus dados ficam salvos automaticamente neste navegador. Para não correr risco de perder informações ao trocar de computador ou navegador, faça backups (JSON) periodicamente.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-foot">
+    <svg class="foot-logo" viewBox="120 150 1160 300" role="img" aria-label="Kairos Soluções — Análise e Desenvolvimento">
+<path d="M174.95873870161074 267.51912889935255V167.59760643515796Q174.95873870161074 161.33902295467925 173.7016306265865 158.2097312144399Q172.4445225515623 155.08043947420052 168.68398635322413 153.89346674514422Q164.92345015488596 152.7064940160879 157.4994963432075 152.7064940160879Q156.97075131128003 152.7064940160879 156.97075131128003 151.4116146752992Q156.97075131128003 150.1167353345105 157.4994963432075 150.1167353345105Q162.87325087635816 150.1167353345105 169.48253743106403 150.4404551697077Q176.09182398576993 150.76417500490487 183.38632147663463 150.76417500490487Q191.2311400528958 150.76417500490487 197.78107928836826 150.4404551697077Q204.33101852384073 150.1167353345105 209.48895983352656 150.1167353345105Q210.01770486545405 150.1167353345105 210.01770486545405 151.4116146752992Q210.01770486545405 152.7064940160879 209.48895983352656 152.7064940160879Q202.06500602184815 152.7064940160879 198.35302911600894 154.0013733568766Q194.6410522101697 155.2962526976653 193.33538484264653 158.53345104963705Q192.02971747512333 161.7706494016088 192.02971747512333 168.0292328820875V267.51912889935255Q192.02971747512333 273.77771237983126 193.22747823091413 277.014910731803Q194.42523898670493 280.25210908377477 198.19656321177757 281.3311752010987Q201.96788743685022 282.4102413184226 209.48895983352656 282.4102413184226Q210.11482345045198 282.4102413184226 210.11482345045198 283.7051206592113Q210.11482345045198 285.0 209.48895983352656 285.0Q204.11520530037595 285.0 197.6731726766359 284.7841867765352Q191.2311400528958 284.56837355307044 183.38632147663463 284.56837355307044Q176.09182398576993 284.56837355307044 169.3260715268327 284.7841867765352Q162.56031906789545 285.0 157.1865645347448 285.0Q156.75493808781525 285.0 156.75493808781525 283.7051206592113Q156.75493808781525 282.4102413184226 157.1865645347448 282.4102413184226Q164.70763693142118 282.4102413184226 168.5275204489928 281.3311752010987Q172.3474039665644 280.25210908377477 173.65307133408757 277.014910731803Q174.95873870161074 273.77771237983126 174.95873870161074 267.51912889935255ZM229.91562084237677 253.70708259760644 197.144453989096 211.52643812575104 209.8991156045377 200.48746792690554 241.85028704844774 241.9776259989792Q251.2165598713092 254.32213184340972 257.6963374164261 262.1021959148764Q264.176114961543 269.88225998634306 268.58409083027556 274.1283891096708Q272.9920666990081 278.3745182329986 276.3695357429157 280.13879528648135Q279.74700478682325 281.90307233996407 282.89787258053155 282.15665682919337Q286.04874037423986 282.4102413184226 289.857835865077 282.4102413184226Q290.50527553547136 282.4102413184226 290.50527553547136 283.7051206592113Q290.50527553547136 285.0 289.857835865077 285.0Q280.24335939415965 285.0 274.4164023606105 285.0Q268.58944532706136 285.0 265.6867548370213 285.0Q263.3991135927845 285.0 261.7966832847065 285.15646590423137Q260.1942529766285 285.3129318084627 258.82383110431084 285.3129318084627Q255.8995645608018 285.3129318084627 253.97882160308768 284.23386569113876Q252.0580786453736 283.15479957381484 249.50068404399963 279.91760122184314Q246.94328944262566 276.6804028698714 242.43278780333418 270.4218193893927Q237.92228616404267 264.163235908914 229.91562084237677 253.70708259760644ZM180.83971490199517 225.04718136127872 236.40083191744236 169.02204747431088Q244.5046158241062 160.91826356764705 243.0478633935251 156.81237879186747Q241.591110962944 152.7064940160879 230.44436587430422 152.7064940160879Q229.91562084237677 152.7064940160879 229.91562084237677 151.4116146752992Q229.91562084237677 150.1167353345105 230.44436587430422 150.1167353345105Q235.91523899245277 150.1167353345105 241.54257801483266 150.4404551697077Q247.16991703721254 150.76417500490487 256.3851574857914 150.76417500490487Q265.43855118896545 150.76417500490487 270.70980629594476 150.4404551697077Q275.981061402924 150.1167353345105 280.88003738220715 150.1167353345105Q281.5274770526015 150.1167353345105 281.5274770526015 151.4116146752992Q281.5274770526015 152.7064940160879 280.88003738220715 152.7064940160879Q272.37696476442954 152.7064940160879 261.69418385853515 156.9418614570688Q251.01140295264076 161.17722889804972 241.65589181212613 170.31692681509958L186.3105880201437 225.21984247780557Z" fill="#0B1F3A"/>
+<path d="M354.6449023226746 285.0Q353.9974626522802 285.0 353.9974626522802 283.7051206592113Q353.9974626522802 282.4102413184226 354.6449023226746 282.4102413184226Q361.91782376007035 282.4102413184226 367.863501776474 277.75941629842004Q373.80917979287767 273.10859127841746 377.8880549852396 262.7603182344547L421.96781367256483 150.3325485579753Q422.18362689602964 149.46929566411615 424.23385251894507 149.46929566411615Q426.2840781418605 149.46929566411615 426.71570458879006 150.3325485579753L480.79851946457484 267.087502452423Q484.46734426347615 275.1157438275579 488.47067692430915 278.76299257299024Q492.4740095851421 282.4102413184226 498.5059654710339 282.4102413184226Q499.15340514142827 282.4102413184226 499.15340514142827 283.7051206592113Q499.15340514142827 285.0 498.5059654710339 285.0Q495.67881751252276 285.0 493.3264744522667 284.7841867765352Q490.9741313920107 284.56837355307044 488.13619540676507 284.46046694133804Q485.2982594215195 284.35256032960564 481.3272644965023 284.35256032960564Q473.0399524134142 284.35256032960564 467.2669091691498 284.46046694133804Q461.4938659248854 284.56837355307044 457.39879552022796 284.7841867765352Q453.3037251155705 285.0 449.9694081786009 285.0Q449.3219685082065 285.0 449.3219685082065 283.7051206592113Q449.3219685082065 282.4102413184226 449.9694081786009 282.4102413184226Q458.6559035952522 282.4102413184226 461.9146780006929 278.5957122976368Q465.1734524061336 274.781183276851 461.31039043723644 266.5263143071292L417.0472089510375 170.09045728683847L424.8165376845449 157.7350316937353L383.0999627729854 263.76384182024964Q379.6901033044868 272.6769648314879 382.9758609489575 277.5436030749553Q386.26161859342824 282.4102413184226 397.66732901247065 282.4102413184226Q398.314768682865 282.4102413184226 398.314768682865 283.7051206592113Q398.314768682865 285.0 397.66732901247065 285.0Q392.12091336279315 285.0 387.0438954258097 284.67628016480285Q381.96687748882624 284.35256032960564 373.75516062604237 284.35256032960564Q367.59369573056154 284.35256032960564 363.8169643199278 284.67628016480285Q360.04023290929416 285.0 354.6449023226746 285.0Z" fill="#C9A24B"/>
+<path d="M608.33342553869 267.51912889935255Q608.33342553869 273.77771237983126 609.5311862944808 277.014910731803Q610.7289470502716 280.25210908377477 614.5002712753442 281.3311752010987Q618.2715955004169 282.4102413184226 625.7926678970932 282.4102413184226Q626.3214129290208 282.4102413184226 626.3214129290208 283.7051206592113Q626.3214129290208 285.0 625.7926678970932 285.0Q620.3940111626612 285.0 613.8706342752223 284.7841867765352Q607.3472573877834 284.56837355307044 599.4742163167366 284.56837355307044Q592.0208371867162 284.56837355307044 585.3579679644253 284.7841867765352Q578.6950987421343 285.0 573.2744593748467 285.0Q572.7241382894503 285.0 572.7241382894503 283.7051206592113Q572.7241382894503 282.4102413184226 573.3133068088459 282.4102413184226Q580.7761080545235 282.4102413184226 584.605703430595 281.3311752010987Q588.4352988066663 280.25210908377477 589.7409661741895 277.014910731803Q591.0466335417127 273.77771237983126 591.0466335417127 267.51912889935255V167.59760643515796Q591.0466335417127 161.33902295467925 589.7630876296612 158.2097312144399Q588.4795417176098 155.08043947420052 584.6289039814556 153.89346674514422Q580.7782662453012 152.7064940160879 573.2744593748467 152.7064940160879Q572.7241382894503 152.7064940160879 572.7241382894503 151.4116146752992Q572.7241382894503 150.1167353345105 573.2744593748467 150.1167353345105Q578.6950987421343 150.1167353345105 585.3579679644253 150.4404551697077Q592.0208371867162 150.76417500490487 599.4742163167366 150.76417500490487Q607.3472573877834 150.76417500490487 613.983106290523 150.4404551697077Q620.6189551932624 150.1167353345105 625.7926678970932 150.1167353345105Q626.3214129290208 150.1167353345105 626.3214129290208 151.4116146752992Q626.3214129290208 152.7064940160879 625.7926678970932 152.7064940160879Q618.3381599238425 152.7064940160879 614.610905937217 154.0013733568766Q610.8836519505917 155.2962526976653 609.6085387446408 158.53345104963705Q608.33342553869 161.7706494016088 608.33342553869 168.0292328820875Z" fill="#0B1F3A"/>
+<path d="M818.4813806490031 285.0Q815.0067930200976 285.0 807.1242295224596 276.7289621623703Q799.2416660248216 268.45792432474065 788.1488874142418 252.95714350104075Q777.056108803662 237.45636267734085 763.254876873038 216.0908535543273L777.8871293392559 211.59111359738267Q795.8643550472398 237.7045136366214 808.4732334076341 253.2808369918503Q821.0821117680284 268.8571603470792 830.8152828774125 275.6337008327509Q840.5484539867967 282.4102413184226 849.5370668407887 282.4102413184226Q850.0873879261851 282.4102413184226 850.0873879261851 283.7051206592113Q850.0873879261851 285.0 849.5370668407887 285.0Q837.3975071599256 285.0 829.7414922237115 285.0Q822.0854772874975 285.0 818.4813806490031 285.0ZM766.6215842345988 149.46929566411617Q784.6959812163558 149.46929566411617 794.3104840316607 157.11446988482044Q803.9249868469657 164.75964410552473 803.9249868469657 177.58974287494482Q803.9249868469657 189.61055522856583 797.0405397495616 199.1333203000463Q790.1560926521576 208.65608537152679 779.0417116437212 214.05141595814635Q767.9273306352849 219.44674654476592 755.0325037054579 219.44674654476592Q752.6045917692852 219.44674654476592 749.7720366252131 219.32805190629904Q746.9394814811409 219.2093572678322 744.5871120764972 218.9935440443674V267.51912889935255Q744.5871120764972 273.77771237983126 745.784872832288 277.014910731803Q746.9826335880788 280.25210908377477 750.7539578131514 281.3311752010987Q754.5252820382241 282.4102413184226 762.0463544349004 282.4102413184226Q762.5966755202969 282.4102413184226 762.5966755202969 283.7051206592113Q762.5966755202969 285.0 762.0463544349004 285.0Q756.6725999017498 285.0 750.1820079855108 284.7841867765352Q743.6914160692718 284.56837355307044 735.8465974930106 284.56837355307044Q728.5521000021458 284.56837355307044 721.8349068357076 284.7841867765352Q715.1177136692693 285.0 709.7439591361186 285.0Q709.2152141041912 285.0 709.2152141041912 283.7051206592113Q709.2152141041912 282.4102413184226 709.7439591361186 282.4102413184226Q717.265031532795 282.4102413184226 721.0363557578677 281.3311752010987Q724.8076799829404 280.25210908377477 726.172694669697 277.014910731803Q727.5377093564535 273.77771237983126 727.5377093564535 267.51912889935255V167.59760643515796Q727.5377093564535 161.33902295467925 726.2806012814293 158.2097312144399Q725.0234932064051 155.08043947420052 721.3115163005659 153.89346674514422Q717.5995393947267 152.7064940160879 710.0784669980503 152.7064940160879Q709.5281459126539 152.7064940160879 709.5281459126539 151.4116146752992Q709.5281459126539 150.1167353345105 710.0784669980503 150.1167353345105Q715.3335268927341 150.1167353345105 721.9428134474399 150.4404551697077Q728.5521000021458 150.76417500490487 735.8465974930106 150.76417500490487Q742.7310445904147 150.76417500490487 751.433708874974 150.1167353345105Q760.1363731595332 149.46929566411617 766.6215842345988 149.46929566411617ZM786.2065684030588 184.48500434347105Q786.2065684030588 172.3454973513832 782.9639892099136 165.53659278550805Q779.7214100167685 158.72768821963288 773.824343981639 155.8897522343873Q767.9272779465095 153.05181624914167 759.8451227820899 153.05181624914167Q751.6873723973661 153.05181624914167 748.1372422369316 156.05162532417967Q744.5871120764972 159.0514343992177 744.5871120764972 168.0292328820875V213.5442469796878Q747.6084972050041 213.85717878815052 751.1208560996741 214.0729920116153Q754.6332149943441 214.28880523508008 757.3416683143884 214.28880523508008Q773.279403737416 214.28880523508008 779.7429860702374 206.8594442378406Q786.2065684030588 199.4300832406011 786.2065684030588 184.48500434347105Z" fill="#0B1F3A"/>
+<path d="M991.2399450657249 287.5897586815774Q975.7013929762605 287.5897586815774 963.0763194035708 282.0865214832254Q950.4512458308809 276.58328428487346 941.4949970570924 266.8716892289582Q932.5387482833039 257.160094173043 927.6829507553463 244.53502060035316Q922.8271532273886 231.90994702766335 922.8271532273886 217.66627427898766Q922.8271532273886 200.1854031783402 929.6252697665293 187.02079654698844Q936.42338630567 173.85618991563666 947.6456739258388 165.11575436531294Q958.8679615460075 156.3753188149892 972.248381400824 152.05905434569354Q985.6288012556405 147.7427898763979 998.7934078869923 147.7427898763979Q1014.7635864233863 147.7427898763979 1027.388659996076 153.46184029821467Q1040.013733568766 159.1808907200314 1048.862075730822 168.89248577594665Q1057.710417892878 178.6040808318619 1062.3504021973708 190.90543456935453Q1066.990386501864 203.20678830684716 1066.990386501864 216.15558171473418Q1066.990386501864 231.262507357269 1060.94761624485 244.21130076515598Q1054.9048459878359 257.160094173043 1044.4379046497938 266.8716892289582Q1033.970963311752 276.58328428487346 1020.2668236217382 282.0865214832254Q1006.5626839317245 287.5897586815774 991.2399450657249 287.5897586815774ZM998.7178653554633 282.78790128729213Q1012.4651308080273 282.78790128729213 1023.5039429405472 275.8225308171857Q1034.542755073067 268.8571603470792 1040.9955493791538 255.2986985345623Q1047.4483436852406 241.74023672204544 1047.4483436852406 222.295470556746Q1047.4483436852406 202.08457008258534 1040.3966690012585 186.48667067388752Q1033.3449943172761 170.8887712651897 1020.4609817585713 161.9325224914012Q1007.5769691998663 152.9762737176127 989.9234896714672 152.9762737176127Q967.3171203745003 152.9762737176127 954.843158209256 168.22347005208337Q942.3691960440118 183.470666386554 942.3691960440118 210.03726892619127Q942.3691960440118 225.43555032371984 946.4534520775471 238.70806356680401Q950.5377081110825 251.98057680988816 958.0695685344933 261.9187731160027Q965.6014289579041 271.8569694221172 975.9226660740616 277.3224353547047Q986.243903190219 282.78790128729213 998.7178653554633 282.78790128729213Z" fill="#0B1F3A"/>
+<path d="M1175.5876953891382 174.28776367379095Q1175.5876953891382 182.9634447193202 1179.9147478851683 189.23281622653337Q1184.2418003811983 195.50218773374658 1191.158611558806 200.3471972349697Q1198.0754227364134 205.19220673619287 1205.7475801961477 209.91852159894916Q1213.8297880493426 214.74195504670334 1221.2159969396444 220.10492155311948Q1228.602205829946 225.46788805953565 1233.4580033579034 232.67605499213693Q1238.313800885861 239.8842219247382 1238.313800885861 250.2432566510478Q1238.313800885861 260.85049502541324 1232.8752918479158 269.3049820063043Q1227.4367828099707 277.7594689871953 1217.3852727065628 282.6746138343864Q1207.3337626031548 287.5897586815774 1193.2411749175371 287.5897586815774Q1187.7163353213286 287.5897586815774 1182.0080465818587 286.6509632561893Q1176.2997578423888 285.7121678308012 1171.0554859744395 283.94789077731843Q1165.8112141064903 282.1836137238357 1161.5597304863766 279.66939757378725Q1160.5777829540507 279.02195790339294 1160.1083852413567 278.1479169827993Q1159.6389875286625 277.2738760622057 1159.5202928901956 275.5689463279564L1157.448517558199 244.69678831259503Q1157.232704334734 243.6177221952711 1158.4196770637905 243.50981558353874Q1159.6066497928468 243.40190897180634 1159.8224630163115 244.26516186566548Q1161.7540203451479 250.8366771546069 1164.9264905367127 257.74810749104097Q1168.0989607282775 264.6595378274751 1172.7173689793012 270.44334275408636Q1177.3357772303252 276.2271476806976 1183.6752840835063 279.8636083993955Q1190.0147909366874 283.50006911809334 1198.3775401737541 283.50006911809334Q1204.290801421179 283.50006911809334 1209.7724362216743 281.35813209574104Q1215.2540710221697 279.21619507338875 1218.7610227312787 274.09064418829394Q1222.2679744403877 268.9650933031992 1222.2679744403877 260.0304469272673Q1222.2679744403877 249.6498361474887 1217.6765494283936 242.53878779988534Q1213.0851244163998 235.42773945228197 1205.963288042062 230.16189153086373Q1198.8414516677242 224.8960436094455 1190.9534809845252 220.16972874668923Q1183.4000181632578 215.44341388393298 1176.3753003739178 210.33403186674607Q1169.3505825845778 205.22464984955917 1164.9749707960486 198.4265333104185Q1160.5993590075195 191.62841677127784 1160.5993590075195 181.77655102342678Q1160.5993590075195 170.1657890632664 1166.7446550350924 162.62311426873345Q1172.8899510626654 155.08043947420052 1182.5260299314393 151.4116146752992Q1192.1621088002132 147.7427898763979 1202.359296781118 147.7427898763979Q1208.9416264411816 147.7427898763979 1215.8206926974121 149.02688119045212Q1222.699758953643 150.31097250450634 1228.418783031072 152.72807006955685Q1230.3395259887861 153.4726283249491 1230.997753685915 154.49234712303962Q1231.6559813830438 155.5120659211301 1231.6559813830438 156.68825062345192L1232.7242331292457 183.54631429563347Q1232.7242331292457 184.3124486044947 1231.6343789851871 184.45812648199157Q1230.5445248411288 184.60380435948844 1230.231593032666 183.83767005062722Q1229.411492245745 180.06096498438114 1227.3342833837996 174.60087989296707Q1225.257074521854 169.140794801553 1221.550478457188 163.8533444822782Q1217.8438823925223 158.56589416300338 1212.0978487316756 154.99416160471236Q1206.351815070829 151.4224290464213 1198.194064686105 151.4224290464213Q1190.662230607082 151.4224290464213 1185.6445863337194 154.53011838880408Q1180.6269420603571 157.63780773118685 1178.1073187247475 162.73637537725165Q1175.5876953891382 167.83494302331644 1175.5876953891382 174.28776367379095Z" fill="#0B1F3A"/>
+<rect x="414.0" y="375.6" width="572.0" height="3.0" fill="#C9A24B"/>
+<path d="M144.4019874135771 449.01804983323524 158.6588226956014 408.97984951319404H166.17626535534657L180.67440252538432 449.01804983323524H174.05229619736537L166.25261166083112 426.7438520189124Q165.3427555902767 424.0277243652179 164.2574268440909 420.3490625102309Q163.17209809790512 416.6704006552439 161.74738091219876 411.51649200497644H162.9855982604064Q161.59258898284037 416.71446994049353 160.51424539057638 420.4372010807301Q159.43590179831236 424.15993222096677 158.6018229211479 426.7438520189124L151.0391432302991 449.01804983323524ZM152.1269247348061 438.46836153259227V433.3499477640283H172.94946520415533V438.46836153259227Z" fill="#5B6B7F"/>
+<path d="M197.48781955964859 449.01804983323524V408.97984951319404H204.5516979210233L219.62169598066654 432.8082940979333Q220.37301251051923 433.99115996464155 221.31565567007348 435.63675332647085Q222.25829882962773 437.28234668830015 223.31004094172403 439.333427497247Q224.36178305382032 441.3845083061938 225.38772815111605 443.80345284050065H224.62351065372434Q224.4010157063122 441.51670632138774 224.2766023901297 439.271885486638Q224.1521890739472 437.02706465188817 224.1011346347758 435.07218674822184Q224.0500801956044 433.1173088445555 224.0500801956044 431.7603143580128V408.97984951319404H230.24870152154912V449.01804983323524H223.14075387492477L209.64112141470557 427.7015446671697Q208.55498820315265 425.95169390583357 207.52313221251714 424.1851798047827Q206.49127622188163 422.4186657037318 205.2425663819589 420.0994068111114Q203.99385654203616 417.7801479184911 202.18272864502842 414.4330602823484H203.157079712723Q203.30594598790918 417.3867520532679 203.43035930409167 419.96101826680786Q203.55477262027418 422.53528448034785 203.63162407424613 424.5081697795259Q203.70847552821812 426.4810550787039 203.70847552821812 427.65747538192005V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M247.05563363010154 449.01804983323524 261.31246891212584 408.97984951319404H268.829911571871L283.3280487419088 449.01804983323524H276.7059424138898L268.90625787735553 426.7438520189124Q267.99640180680115 424.0277243652179 266.91107306061537 420.3490625102309Q265.8257443144296 416.6704006552439 264.4010271287232 411.51649200497644H265.63924447693086Q264.24623519936483 416.71446994049353 263.16789160710084 420.4372010807301Q262.0895480148368 424.15993222096677 261.2554691376723 426.7438520189124L253.69278944682355 449.01804983323524ZM254.78057095133053 438.46836153259227V433.3499477640283H275.6031114206798V438.46836153259227ZM262.77263177676093 405.0953363693998 266.52493706480635 397.04040915867336H272.6177019010649L267.2885952906584 405.0953363693998Z" fill="#5B6B7F"/>
+<path d="M300.14146577617305 449.01804983323524V408.97984951319404H306.28204750902455V443.73948759323525H324.3976038403201V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M348.4054587987538 408.97984951319404V449.01804983323524H342.2648770659023V408.97984951319404Z" fill="#5B6B7F"/>
+<path d="M381.70704710932614 449.67800993112013Q377.2211628917248 449.67800993112013 373.91116430718745 448.2541021310584Q370.6011657226501 446.8301943309966 368.7379140461664 444.18955931464484Q366.8746623696827 441.548924298293 366.67151395330166 437.8901436444893H372.8255362441219Q373.0211599161515 440.0699446525016 374.24837470387916 441.49815441516887Q375.47558949160685 442.92636417783615 377.429672770461 443.62636139358005Q379.38375604931514 444.32635860932396 381.67802731277953 444.32635860932396Q384.21790734714034 444.32635860932396 386.2045079197794 443.52182927858087Q388.19110849241855 442.71729994783783 389.3355609328345 441.2573773567527Q390.4800133732504 439.7974547656677 390.4800133732504 437.87776258627014Q390.4800133732504 436.1268228035196 389.48362274265355 435.01192975007996Q388.4872321120567 433.8970366966404 386.77391605106374 433.1564627726077Q385.0605999900708 432.4158888485751 382.89638806119126 431.84890395394723L378.2046574750601 430.5703649318333Q373.2856051493141 429.24345958214167 370.5331830688265 426.6592503078713Q367.78076098833884 424.07504103360094 367.78076098833884 419.96750319251976Q367.78076098833884 416.5043363701907 369.651537409174 413.9069612534439Q371.52231383000924 411.3095861366971 374.7336961131647 409.8760050711198Q377.9450783963201 408.4424240055425 381.9741509324176 408.4424240055425Q386.0886739274206 408.4424240055425 389.21460575167055 409.88084170387754Q392.34053757592056 411.3192594022126 394.129625910026 413.8209712041086Q395.9187142441314 416.32268300600464 396.01168944738845 419.51874600524224H390.0366324091604Q389.725998891249 416.76389576782077 387.48626972363945 415.2569509049549Q385.24654055602986 413.75000604208907 381.84194307666877 413.75000604208907Q379.42674615370527 413.75000604208907 377.63576925309576 414.5142284597583Q375.8447923524862 415.2784508774275 374.8715106250961 416.60509135218166Q373.8982288977061 417.93173182693585 373.8982288977061 419.633765691679Q373.8982288977061 421.52174996293616 375.0660600365437 422.69656625569553Q376.2338911753813 423.87138254845496 377.9144250676519 424.5496149167889Q379.5949589599225 425.2278472851229 381.123393954706 425.6309164158615L384.99662490225046 426.6600892151808Q386.9136092889443 427.1383959488797 388.93916287830547 427.96334115095834Q390.9647164676666 428.788286353037 392.69227263171797 430.0910036186623Q394.4198287957694 431.3937208842876 395.48447187540467 433.3174353905208Q396.54911495504 435.241149896754 396.54911495504 437.9438665141446Q396.54911495504 441.3430779297632 394.7992592734264 443.9982277646658Q393.04940359181285 446.6533775995684 389.7302664119122 448.16569376534426Q386.41112923201155 449.67800993112013 381.70704710932614 449.67800993112013Z" fill="#5B6B7F"/>
+<path d="M414.82269485393937 449.01804983323524V408.97984951319404H440.02469393910917V414.258411753194H420.96327658679087V426.1860795238099H438.67414501605845V431.42594870174776H420.96327658679087V443.73948759323525H440.20365919170143V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M484.69338510371864 449.01804983323524V408.97984951319404H509.89538418888844V414.258411753194H490.83396683657014V426.1860795238099H508.5448352658377V431.42594870174776H490.83396683657014V443.73948759323525H510.0743494414807V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M567.586411376993 449.01804983323524H557.6805938668922V443.6524282035955H567.244609541371Q571.7917807351989 443.6524282035955 574.8045962003487 441.9517383946492Q577.8174116654983 440.25104858570296 579.3157575234306 436.9633396781728Q580.814103381363 433.67563077064267 580.814103381363 428.937682378098Q580.814103381363 424.2389666380451 579.3219382119853 420.98430969445224Q577.8297730426076 417.7296527508593 574.8954228824416 416.03756194684655Q571.9610727222756 414.3454711428338 567.5831935155245 414.3454711428338H557.4752969293471V408.97984951319404H567.9760497903179Q573.8920274168131 408.97984951319404 578.1040973728934 411.3738113386224Q582.3161673289738 413.7677731640507 584.5741589264776 418.2442588316288Q586.8321505239812 422.72074449920694 586.8321505239812 428.937682378098Q586.8321505239812 435.1938529094809 584.565559921544 439.6923732196838Q582.2989693191067 444.19089352988675 577.9925801039725 446.604471681561Q573.6861908888383 449.01804983323524 567.586411376993 449.01804983323524ZM560.7046570863495 408.97984951319404V449.01804983323524H554.5640753534979V408.97984951319404Z" fill="#5B6B7F"/>
+<path d="M605.2862947656521 449.01804983323524V408.97984951319404H630.488293850822V414.258411753194H611.4268764985037V426.1860795238099H629.1377449277712V431.42594870174776H611.4268764985037V443.73948759323525H630.6672591034142V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M662.9203182430813 449.67800993112013Q658.4344340254801 449.67800993112013 655.1244354409426 448.2541021310584Q651.8144368564052 446.8301943309966 649.9511851799216 444.18955931464484Q648.087933503438 441.548924298293 647.8847850870568 437.8901436444893H654.0388073778771Q654.2344310499067 440.0699446525016 655.4616458376344 441.49815441516887Q656.688860625362 442.92636417783615 658.6429439042162 443.62636139358005Q660.5970271830703 444.32635860932396 662.8912984465347 444.32635860932396Q665.4311784808956 444.32635860932396 667.4177790535347 443.52182927858087Q669.4043796261737 442.71729994783783 670.5488320665897 441.2573773567527Q671.6932845070056 439.7974547656677 671.6932845070056 437.87776258627014Q671.6932845070056 436.1268228035196 670.6968938764087 435.01192975007996Q669.7005032458119 433.8970366966404 667.9871871848189 433.1564627726077Q666.273871123826 432.4158888485751 664.1096591949464 431.84890395394723L659.4179286088154 430.5703649318333Q654.4988762830693 429.24345958214167 651.7464542025816 426.6592503078713Q648.994032122094 424.07504103360094 648.994032122094 419.96750319251976Q648.994032122094 416.5043363701907 650.8648085429293 413.9069612534439Q652.7355849637644 411.3095861366971 655.9469672469199 409.8760050711198Q659.1583495300754 408.4424240055425 663.1874220661729 408.4424240055425Q667.3019450611758 408.4424240055425 670.4278768854258 409.88084170387754Q673.5538087096758 411.3192594022126 675.3428970437812 413.8209712041086Q677.1319853778866 416.32268300600464 677.2249605811437 419.51874600524224H671.2499035429156Q670.9392700250042 416.76389576782077 668.6995408573946 415.2569509049549Q666.459811689785 413.75000604208907 663.055214210424 413.75000604208907Q660.6400172874605 413.75000604208907 658.8490403868509 414.5142284597583Q657.0580634862414 415.2784508774275 656.0847817588514 416.60509135218166Q655.1115000314613 417.93173182693585 655.1115000314613 419.633765691679Q655.1115000314613 421.52174996293616 656.279331170299 422.69656625569553Q657.4471623091365 423.87138254845496 659.1276962014072 424.5496149167889Q660.8082300936777 425.2278472851229 662.3366650884611 425.6309164158615L666.2098960360056 426.6600892151808Q668.1268804226995 427.1383959488797 670.1524340120607 427.96334115095834Q672.1779876014218 428.788286353037 673.9055437654731 430.0910036186623Q675.6330999295245 431.3937208842876 676.6977430091599 433.3174353905208Q677.7623860887952 435.241149896754 677.7623860887952 437.9438665141446Q677.7623860887952 441.3430779297632 676.0125304071817 443.9982277646658Q674.262674725568 446.6533775995684 670.9435375456674 448.16569376534426Q667.6244003657667 449.67800993112013 662.9203182430813 449.67800993112013Z" fill="#5B6B7F"/>
+<path d="M696.0359659876945 449.01804983323524V408.97984951319404H721.2379650728643V414.258411753194H702.1765477205461V426.1860795238099H719.8874161498136V431.42594870174776H702.1765477205461V443.73948759323525H721.4169303254565V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M740.2284654818823 449.01804983323524V408.97984951319404H747.2923438432571L762.3623419029002 432.8082940979333Q763.1136584327529 433.99115996464155 764.0563015923071 435.63675332647085Q764.9989447518615 437.28234668830015 766.0506868639577 439.333427497247Q767.1024289760541 441.3845083061938 768.1283740733497 443.80345284050065H767.3641565759581Q767.1416616285459 441.51670632138774 767.0172483123633 439.271885486638Q766.8928349961809 437.02706465188817 766.8417805570095 435.07218674822184Q766.7907261178381 433.1173088445555 766.7907261178381 431.7603143580128V408.97984951319404H772.9893474437829V449.01804983323524H765.8813997971585L752.3817673369392 427.7015446671697Q751.2956341253863 425.95169390583357 750.2637781347509 424.1851798047827Q749.2319221441154 422.4186657037318 747.9832123041926 420.0994068111114Q746.7345024642699 417.7801479184911 744.9233745672622 414.4330602823484H745.8977256349567Q746.0465919101429 417.3867520532679 746.1710052263254 419.96101826680786Q746.2954185425078 422.53528448034785 746.3722699964799 424.5081697795259Q746.4491214504518 426.4810550787039 746.4491214504518 427.65747538192005V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M804.2895800896152 449.01804983323524 789.7962795523352 408.97984951319404H796.4183858803542L804.1960357742637 431.2540473275169Q805.0618225595684 433.8379671254625 806.1815473254883 437.577091810199Q807.3012720914082 441.3162164949356 808.7039546344897 446.3819865747038H807.4533759091728Q808.8463851867389 441.2060432818115 809.940582733073 437.52200520363704Q811.0347802794072 433.8379671254625 811.8688591565717 431.2540473275169L819.4315388474205 408.97984951319404H826.0686946641425L811.7849881067356 449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M859.5670055087137 449.5554753408868Q854.3765523175482 449.5554753408868 850.2867471564863 447.0916472154083Q846.1969419954244 444.62781908992974 843.8376459849451 440.0242319945754Q841.4783499744657 435.42064489922103 841.4783499744657 429.02582094859724Q841.4783499744657 422.59928908983306 843.8376459849451 417.99328367809983Q846.1969419954244 413.3872782663666 850.2867471564863 410.91485113595456Q854.3765523175482 408.4424240055425 859.5670055087137 408.4424240055425Q864.7574586998793 408.4424240055425 868.8338282232498 410.91485113595456Q872.9101977466205 413.3872782663666 875.2608947521663 417.99328367809983Q877.6115917577122 422.59928908983306 877.6115917577122 429.02582094859724Q877.6115917577122 435.4254815319788 875.2608947521663 440.0290686273331Q872.9101977466205 444.6326557226875 868.8338282232498 447.0940655317871Q864.7574586998793 449.5554753408868 859.5670055087137 449.5554753408868ZM859.5670055087137 443.97488350818645Q862.9861128863481 443.97488350818645 865.6861463124224 442.2578050750177Q868.3861797384967 440.540726641849 869.9546616916941 437.19820092297175Q871.5231436448915 433.85567520409444 871.5231436448915 429.02582094859724Q871.5231436448915 424.1470607750926 869.9546616916941 420.80211673983644Q868.3861797384967 417.4571727045803 865.6861463124224 415.7400942714115Q862.9861128863481 414.0230158382428 859.5670055087137 414.0230158382428Q856.1307001212123 414.0230158382428 853.4196493738256 415.751111592724Q850.7085986264389 417.4792073472051 849.1376983568625 420.82415138246125Q847.5667980872863 424.1690954177174 847.5667980872863 429.02582094859724Q847.5667980872863 433.85567520409444 849.1376983568625 437.1871836016593Q850.7085986264389 440.5186919992242 853.4196493738256 442.24678775370535Q856.1307001212123 443.97488350818645 859.5670055087137 443.97488350818645Z" fill="#5B6B7F"/>
+<path d="M896.0764884457581 449.01804983323524V408.97984951319404H902.2170701786097V443.73948759323525H920.3326265099051V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M949.630934378903 449.01804983323524 935.137633841623 408.97984951319404H941.759740169642L949.5373900635515 431.2540473275169Q950.4031768488562 433.8379671254625 951.5229016147762 437.577091810199Q952.642626380696 441.3162164949356 954.0453089237775 446.3819865747038H952.7947301984606Q954.1877394760266 441.2060432818115 955.2819370223608 437.52200520363704Q956.376134568695 433.8379671254625 957.2102134458595 431.2540473275169L964.7728931367083 408.97984951319404H971.4100489534303L957.1263423960233 449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M994.3640477205461 408.97984951319404V449.01804983323524H988.2234659876945V408.97984951319404Z" fill="#5B6B7F"/>
+<path d="M1014.2241120478769 449.01804983323524V408.97984951319404H1023.2592372560306L1031.9940598888775 431.9462844456367Q1032.362732999882 432.96362561772145 1032.8327105238623 434.53316707066847Q1033.3026880478424 436.10270852361543 1033.8143165406934 437.9296756138609Q1034.3259450335445 439.75664270410635 1034.787593347806 441.52906277821955Q1035.2492416620676 443.30148285233275 1035.5840583437678 444.72941789950767H1034.2958558966934Q1034.6527072210183 443.3675867802072 1035.111937218901 441.6172013487188Q1035.5711672167838 439.86681591723044 1036.0827957096349 438.02883150567254Q1036.5944242024857 436.19084709411464 1037.0730007313996 434.58825367723045Q1037.5515772603133 432.98566026034626 1037.920250371318 431.9462844456367L1046.535226525525 408.97984951319404H1055.5972230090613V449.01804983323524H1049.5033986730532V427.48066849104674Q1049.5033986730532 426.2204066596594 1049.52650757626 424.51166727676423Q1049.5496164794667 422.80292789386914 1049.5971783416771 420.882176214722Q1049.6447402038877 418.9614245355749 1049.6898837497195 416.99176693842037Q1049.7350272955512 415.0221093412659 1049.7570619381759 413.2179764387349H1050.2208587736015Q1049.6710718888407 415.1978468918347 1049.042015233729 417.2690786971797Q1048.4129585786172 419.34031050252474 1047.8010999333726 421.2771859309569Q1047.189241288128 423.21406135938906 1046.6421425149608 424.8201522735116Q1046.0950437417937 426.42624318763416 1045.7091726209221 427.48066849104674L1037.5348991597662 449.01804983323524H1032.2740745200629L1023.9751179475095 427.48066849104674Q1023.5892468266378 426.448277830259 1023.0617643797167 424.87523888007365Q1022.5342819327956 423.30219992988833 1021.9175866547931 421.38735914408096Q1021.3008913767907 419.47251835827365 1020.6583990839877 417.37925191030376Q1020.0159067911848 415.28598546233394 1019.3731447031669 413.2179764387349H1019.9100306203887Q1019.9540999056383 414.8678668428922 1019.99924345147 416.79345515479713Q1020.0443869973016 418.719043466702 1020.0809315381996 420.6728471097863Q1020.1174760790977 422.6266507528706 1020.151602303617 424.3904767423278Q1020.1857285281362 426.1543027317849 1020.1857285281362 427.48066849104674V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M1075.4530001346193 449.01804983323524V408.97984951319404H1100.654999219789V414.258411753194H1081.5935818674707V426.1860795238099H1099.3044502967384V431.42594870174776H1081.5935818674707V443.73948759323525H1100.8339644723812V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M1119.645499628807 449.01804983323524V408.97984951319404H1126.7093779901818L1141.779376049825 432.8082940979333Q1142.5306925796776 433.99115996464155 1143.473335739232 435.63675332647085Q1144.415978898786 437.28234668830015 1145.4677210108825 439.333427497247Q1146.5194631229788 441.3845083061938 1147.5454082202746 443.80345284050065H1146.7811907228827Q1146.5586957754706 441.51670632138774 1146.4342824592882 439.271885486638Q1146.3098691431057 437.02706465188817 1146.2588147039341 435.07218674822184Q1146.2077602647628 433.1173088445555 1146.2077602647628 431.7603143580128V408.97984951319404H1152.4063815907075V449.01804983323524H1145.2984339440832L1131.798801483864 427.7015446671697Q1130.712668272311 425.95169390583357 1129.6808122816756 424.1851798047827Q1128.6489562910401 422.4186657037318 1127.4002464511173 420.0994068111114Q1126.1515366111946 417.7801479184911 1124.3404087141869 414.4330602823484H1125.3147597818815Q1125.4636260570676 417.3867520532679 1125.58803937325 419.96101826680786Q1125.7124526894327 422.53528448034785 1125.7893041434045 424.5081697795259Q1125.8661555973765 426.4810550787039 1125.8661555973765 427.65747538192005V449.01804983323524Z" fill="#5B6B7F"/>
+<path d="M1170.275273587579 414.258411753194V408.97984951319404H1201.3448839716664V414.258411753194H1188.9024042886733V449.01804983323524H1182.7618225558217V414.258411753194Z" fill="#5B6B7F"/>
+<path d="M1235.8938429866419 449.5554753408868Q1230.7033897954764 449.5554753408868 1226.6135846344146 447.0916472154083Q1222.5237794733525 444.62781908992974 1220.1644834628732 440.0242319945754Q1217.8051874523937 435.42064489922103 1217.8051874523937 429.02582094859724Q1217.8051874523937 422.59928908983306 1220.1644834628732 417.99328367809983Q1222.5237794733525 413.3872782663666 1226.6135846344146 410.91485113595456Q1230.7033897954764 408.4424240055425 1235.8938429866419 408.4424240055425Q1241.0842961778076 408.4424240055425 1245.160665701178 410.91485113595456Q1249.2370352245487 413.3872782663666 1251.5877322300944 417.99328367809983Q1253.9384292356403 422.59928908983306 1253.9384292356403 429.02582094859724Q1253.9384292356403 435.4254815319788 1251.5877322300944 440.0290686273331Q1249.2370352245487 444.6326557226875 1245.160665701178 447.0940655317871Q1241.0842961778076 449.5554753408868 1235.8938429866419 449.5554753408868ZM1235.8938429866419 443.97488350818645Q1239.3129503642763 443.97488350818645 1242.0129837903505 442.2578050750177Q1244.7130172164248 440.540726641849 1246.2814991696223 437.19820092297175Q1247.8499811228196 433.85567520409444 1247.8499811228196 429.02582094859724Q1247.8499811228196 424.1470607750926 1246.2814991696223 420.80211673983644Q1244.7130172164248 417.4571727045803 1242.0129837903505 415.7400942714115Q1239.3129503642763 414.0230158382428 1235.8938429866419 414.0230158382428Q1232.4575375991406 414.0230158382428 1229.7464868517538 415.751111592724Q1227.0354361043671 417.4792073472051 1225.4645358347907 420.82415138246125Q1223.8936355652145 424.1690954177174 1223.8936355652145 429.02582094859724Q1223.8936355652145 433.85567520409444 1225.4645358347907 437.1871836016593Q1227.0354361043671 440.5186919992242 1229.7464868517538 442.24678775370535Q1232.4575375991406 443.97488350818645 1235.8938429866419 443.97488350818645Z" fill="#5B6B7F"/>
+</svg>
+  </footer>
+
+</div>
+
+<dialog class="reset-dialog" id="dlg-reset">
+  <div class="rd-head">Resetar dados</div>
+  <div class="rd-body">
+    Isso <strong>apaga todos os lançamentos, saldos iniciais, orçamentos e categorias/instituições personalizadas</strong> deste navegador. Escolha como recomeçar:
+    <br><small>Se o app ficar totalmente vazio, os dados de exemplo voltam na próxima abertura. Basta registrar qualquer lançamento para mantê-lo como está.</small>
+  </div>
+  <div class="rd-actions">
+    <button type="button" class="btn-add" data-reset="exemplo">Restaurar dados de exemplo</button>
+    <button type="button" class="btn-danger" data-reset="vazio">Apagar tudo e começar em branco</button>
+    <button type="button" class="btn-clear" data-reset="cancelar">Cancelar</button>
+  </div>
+</dialog>
+
+<script>
+// Armazenamento: usa window.storage quando existe (Claude); fora dele, cai para localStorage (ou memória).
+if(!window.storage){
+  const mem = {};
+  window.storage = {
+    async get(k){ try{ const v = localStorage.getItem('livrocaixa:'+k); return v === null ? null : {key:k, value:v}; }catch(e){ return k in mem ? {key:k, value:mem[k]} : null; } },
+    async set(k,v){ try{ localStorage.setItem('livrocaixa:'+k, v); }catch(e){ mem[k] = v; } return {key:k, value:v}; },
+    async delete(k){ try{ localStorage.removeItem('livrocaixa:'+k); }catch(e){ delete mem[k]; } return {key:k, deleted:true}; }
+  };
+}
+const CATEGORIAS = {
+  entrada: ["Salário","Investimentos","Freelance","Presente","Reembolso","Outros"],
+  saida: ["Alimentação","Moradia","Transporte","Saúde","Educação","Lazer","Assinaturas","Compras","Supermercado","Farmácia","Financiamento","Outros"]
+};
+const ICONES_PADRAO = {
+  "Salário": "💰", "Investimentos": "📈", "Freelance": "💻", "Presente": "🎁", "Reembolso": "↩️",
+  "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗", "Saúde": "🩺", "Educação": "🎓",
+  "Lazer": "🎬", "Assinaturas": "🔁", "Compras": "🛍️", "Supermercado": "🛒", "Farmácia": "💊",
+  "Financiamento": "🏦", "Outros": "🏷️", "Saldo inicial": "🏁"
+};
+const INSTITUICOES_PADRAO = ["Nubank","Itaú","Bradesco","Santander","Banco do Brasil","Caixa","Inter","C6 Bank","PicPay","Mercado Pago","Neon","Dinheiro em espécie"];
+const FORMAS_PAGAMENTO = ["Dinheiro","Débito","Crédito","Pix","Transferência","Boleto","Outro"];
+const STORE_KEY = "entries";
+const BUDGET_KEY = "budgets";
+const CUSTOM_CAT_KEY = "custom_categories";
+const CUSTOM_INST_KEY = "custom_institutions";
+const CAT_ICONS_KEY = "category_icons";
+let entries = [];
+let budgets = {};
+let customCategorias = {entrada:[], saida:[]};
+let customInstituicoes = [];
+let categoryIcons = {};
+let currentType = "entrada";
+let sortCol = "date", sortDir = "desc";
+let chartMensal=null, chartSaldo=null, chartSaldoMensal=null;
+
+function getCategoryIcon(nome){
+  return categoryIcons[nome] || ICONES_PADRAO[nome] || "🏷️";
+}
+
+const fmt = v => v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const uid = () => 'e' + Date.now() + Math.random().toString(36).slice(2,7);
+
+function getCategorias(tipo){
+  const extras = (customCategorias[tipo] || []).filter(c => !CATEGORIAS[tipo].includes(c));
+  return [...CATEGORIAS[tipo], ...extras];
+}
+function getInstituicoes(){
+  const extras = customInstituicoes.filter(i => !INSTITUICOES_PADRAO.includes(i));
+  return [...INSTITUICOES_PADRAO, ...extras];
+}
+
+document.getElementById('today-stamp').textContent = new Date().toLocaleDateString('pt-BR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+
+function populateCategorySelect(){
+  const sel = document.getElementById('f-cat');
+  const prev = sel.value;
+  sel.innerHTML = getCategorias(currentType).map(c => `<option value="${c}">${getCategoryIcon(c)} ${c}</option>`).join('');
+  if(getCategorias(currentType).includes(prev)) sel.value = prev;
+}
+populateCategorySelect();
+
+const bgCatSel = document.getElementById('bg-cat');
+function populateBudgetCategorySelect(){
+  const prev = bgCatSel.value;
+  bgCatSel.innerHTML = getCategorias('saida').map(c => `<option value="${c}">${getCategoryIcon(c)} ${c}</option>`).join('');
+  if(getCategorias('saida').includes(prev)) bgCatSel.value = prev;
+}
+populateBudgetCategorySelect();
+
+function populateInstituicoesDatalist(){
+  document.getElementById('lista-instituicoes').innerHTML = getInstituicoes().map(i => `<option value="${i}">`).join('');
+}
+populateInstituicoesDatalist();
+
+document.getElementById('f-forma').innerHTML = FORMAS_PAGAMENTO.map(f => `<option value="${f}">${f}</option>`).join('');
+document.getElementById('fl-forma').innerHTML = '<option value="">Todas</option>' + FORMAS_PAGAMENTO.map(f => `<option value="${f}">${f}</option>`).join('');
+document.getElementById('gf-forma').innerHTML = '<option value="">Todas</option>' + FORMAS_PAGAMENTO.map(f => `<option value="${f}">${f}</option>`).join('');
+
+const mesAtualLabel = new Date().toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+document.getElementById('orcamento-mes-label').textContent = mesAtualLabel.charAt(0).toUpperCase() + mesAtualLabel.slice(1);
+
+document.getElementById('btn-entrada').addEventListener('click', () => setType('entrada'));
+document.getElementById('btn-saida').addEventListener('click', () => setType('saida'));
+function setType(t){
+  currentType = t;
+  document.getElementById('btn-entrada').classList.toggle('active', t==='entrada');
+  document.getElementById('btn-saida').classList.toggle('active', t==='saida');
+  populateCategorySelect();
+}
+
+async function saveCustomLists(){
+  try{
+    await window.storage.set(CUSTOM_CAT_KEY, JSON.stringify(customCategorias), false);
+    await window.storage.set(CUSTOM_INST_KEY, JSON.stringify(customInstituicoes), false);
+    await window.storage.set(CAT_ICONS_KEY, JSON.stringify(categoryIcons), false);
+  }catch(e){
+    console.error('Falha ao salvar categorias/instituições', e);
+  }
+}
+
+function renderManagementChips(){
+  const catContainer = document.getElementById('chip-list-cat');
+  const catChips = [
+    ...customCategorias.entrada.map(c => ({nome:c, tipo:'entrada'})),
+    ...customCategorias.saida.map(c => ({nome:c, tipo:'saida'}))
+  ];
+  catContainer.innerHTML = catChips.length === 0
+    ? '<span class="budget-empty">Nenhuma categoria personalizada ainda.</span>'
+    : catChips.map(c => `
+        <span class="chip ${c.tipo}">${getCategoryIcon(c.nome)} ${escapeHtml(c.nome)} <small style="color:var(--ink-soft);">(${c.tipo === 'entrada' ? 'entrada' : 'saída'})</small>
+          <button type="button" title="Remover" onclick="removeCategoria('${c.tipo}','${c.nome.replace(/'/g,"\\'")}')">&times;</button>
+        </span>`).join('');
+
+  const instContainer = document.getElementById('chip-list-inst');
+  instContainer.innerHTML = customInstituicoes.length === 0
+    ? '<span class="budget-empty">Nenhuma instituição personalizada ainda.</span>'
+    : customInstituicoes.map(i => `
+        <span class="chip">${escapeHtml(i)}
+          <button type="button" title="Remover" onclick="removeInstituicao('${i.replace(/'/g,"\\'")}')">&times;</button>
+        </span>`).join('');
+}
+
+document.getElementById('btn-add-cat').addEventListener('click', async () => {
+  const tipo = document.getElementById('newcat-tipo').value;
+  const nome = document.getElementById('newcat-nome').value.trim();
+  if(!nome) return;
+  if(getCategorias(tipo).some(c => c.toLowerCase() === nome.toLowerCase())){
+    alert('Essa categoria já existe.');
+    return;
+  }
+  customCategorias[tipo].push(nome);
+  document.getElementById('newcat-nome').value = '';
+  await saveCustomLists();
+  populateCategorySelect();
+  populateBudgetCategorySelect();
+  renderManagementChips();
+});
+
+async function removeCategoria(tipo, nome){
+  customCategorias[tipo] = customCategorias[tipo].filter(c => c !== nome);
+  await saveCustomLists();
+  populateCategorySelect();
+  populateBudgetCategorySelect();
+  renderManagementChips();
+}
+
+document.getElementById('btn-add-inst').addEventListener('click', async () => {
+  const nome = document.getElementById('newinst-nome').value.trim();
+  if(!nome) return;
+  if(getInstituicoes().some(i => i.toLowerCase() === nome.toLowerCase())){
+    alert('Essa instituição já existe.');
+    return;
+  }
+  customInstituicoes.push(nome);
+  document.getElementById('newinst-nome').value = '';
+  await saveCustomLists();
+  populateInstituicoesDatalist();
+  renderManagementChips();
+});
+
+async function removeInstituicao(nome){
+  customInstituicoes = customInstituicoes.filter(i => i !== nome);
+  await saveCustomLists();
+  populateInstituicoesDatalist();
+  renderManagementChips();
+}
+
+function gerarDadosExemplo(){
+  const pad = n => String(n).padStart(2,'0');
+  const hoje = new Date();
+  const dataMes = (offset, dia) => {
+    const ult = new Date(hoje.getFullYear(), hoje.getMonth()+offset+1, 0).getDate();
+    const d = new Date(hoje.getFullYear(), hoje.getMonth()+offset, Math.min(dia, ult));
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  };
+  const hojeStr = todayStr();
+  const lista = [];
+  const add = (date, type, desc, cat, valor, forma, inst) =>
+    lista.push({id: uid(), date, desc, cat, type, valor, forma, inst, confirmado: date <= hojeStr});
+  const inicial = (inst, valor) => lista.push({
+    id: uid(), date: dataMes(-3,1), desc: 'Saldo inicial', cat: 'Saldo inicial',
+    type: 'entrada', valor, forma: '', inst, confirmado: true, saldoInicial: true
+  });
+  inicial('Itaú', 1500); inicial('Nubank', 3000); inicial('Dinheiro em espécie', 150);
+
+  [-2,-1,0].forEach((m,i) => {
+    add(dataMes(m,5),  'entrada','Salário','Salário',4200,'Transferência','Itaú');
+    add(dataMes(m,5),  'saida','Aluguel','Moradia',1450,'Pix','Itaú');
+    add(dataMes(m,8),  'saida','Supermercado do mês','Supermercado',[412.37,389.90,436.15][i],'Débito','Nubank');
+    add(dataMes(m,10), 'saida','Netflix','Assinaturas',55.90,'Crédito','Nubank');
+    add(dataMes(m,10), 'saida','Spotify','Assinaturas',21.90,'Crédito','Nubank');
+    add(dataMes(m,12), 'saida','Combustível','Transporte',[210,185.50,225][i],'Crédito','Nubank');
+    add(dataMes(m,7),  'saida','Mensalidade do curso','Educação',480,'Boleto','Itaú');
+    add(dataMes(m,10), 'saida','Plano de saúde','Saúde',389,'Boleto','Itaú');
+    add(dataMes(m,15), 'saida','Internet','Moradia',99.90,'Boleto','Itaú');
+    add(dataMes(m,17), 'saida','Farmácia','Farmácia',[64.50,38.90,87.20][i],'Débito','Nubank');
+    add(dataMes(m,20), 'saida','Conta de luz','Moradia',[187.40,165.20,201.80][i],'Boleto','Itaú');
+    add(dataMes(m,22), 'saida','Supermercado - reposição','Supermercado',[148.60,132.40,156.90][i],'Pix','Nubank');
+    add(dataMes(m,25), 'saida','Jantar com amigos','Lazer',[132,96.50,148][i],'Crédito','Nubank');
+    add(dataMes(m,28), 'entrada','Rendimento CDB','Investimentos',[42.30,45.10,48.10][i],'Transferência','Itaú');
+  });
+  add(dataMes(-1,14),'entrada','Reembolso plano de saúde','Reembolso',120,'Pix','Itaú');
+  add(dataMes(-1,18),'entrada','Projeto de design (freelance)','Freelance',850,'Pix','Nubank');
+  add(dataMes(-1,20),'saida','Cinema','Lazer',48,'Dinheiro','Dinheiro em espécie');
+  add(dataMes(0,18), 'entrada','Manutenção de site (freelance)','Freelance',600,'Pix','Nubank');
+  // Próximo mês: lançamentos previstos (ainda não confirmados)
+  add(dataMes(1,5),  'entrada','Salário','Salário',4200,'Transferência','Itaú');
+  add(dataMes(1,5),  'saida','Aluguel','Moradia',1450,'Pix','Itaú');
+
+  return {
+    entries: lista,
+    budgets: {Supermercado:800, Lazer:300, Transporte:350, Assinaturas:100, Farmácia:150, Moradia:1900, Saúde:400, Educação:500}
+  };
+}
+
+async function resetarDados(modo){
+  const base = modo === 'exemplo' ? gerarDadosExemplo() : {entries:[], budgets:{}};
+  entries = base.entries;
+  budgets = base.budgets;
+  customCategorias = {entrada:[], saida:[]};
+  customInstituicoes = [];
+  categoryIcons = {};
+  await saveEntries();
+  await saveBudgets();
+  await saveCustomLists();
+  if(editingId) cancelEdit();
+  populateCategorySelect();
+  populateBudgetCategorySelect();
+  populateInstituicoesDatalist();
+  renderManagementChips();
+  refreshCategoryFilter();
+  limparFiltros();
+  if(document.getElementById('tab-graf').classList.contains('active')) renderCharts();
+}
+
+(function(){
+  const dlg = document.getElementById('dlg-reset');
+  document.getElementById('btn-resetar').addEventListener('click', () => {
+    if(typeof dlg.showModal === 'function'){ dlg.showModal(); return; }
+    if(confirm('Apagar todos os dados e restaurar os dados de exemplo?')) resetarDados('exemplo');
+  });
+  dlg.addEventListener('click', async (ev) => {
+    const acao = ev.target.dataset && ev.target.dataset.reset;
+    if(ev.target === dlg || acao === 'cancelar'){ dlg.close(); return; }
+    if(acao === 'exemplo' || acao === 'vazio'){
+      dlg.close();
+      await resetarDados(acao);
+    }
+  });
+})();
+
+async function loadEntries(){
+  try{
+    const res = await window.storage.get(STORE_KEY, false);
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    entries = [];
+  }
+  try{
+    const res2 = await window.storage.get(BUDGET_KEY, false);
+    budgets = res2 && res2.value ? JSON.parse(res2.value) : {};
+  }catch(e){
+    budgets = {};
+  }
+  try{
+    const res3 = await window.storage.get(CUSTOM_CAT_KEY, false);
+    customCategorias = res3 && res3.value ? JSON.parse(res3.value) : {entrada:[], saida:[]};
+  }catch(e){
+    customCategorias = {entrada:[], saida:[]};
+  }
+  try{
+    const res4 = await window.storage.get(CUSTOM_INST_KEY, false);
+    customInstituicoes = res4 && res4.value ? JSON.parse(res4.value) : [];
+  }catch(e){
+    customInstituicoes = [];
+  }
+  try{
+    const res5 = await window.storage.get(CAT_ICONS_KEY, false);
+    categoryIcons = res5 && res5.value ? JSON.parse(res5.value) : {};
+  }catch(e){
+    categoryIcons = {};
+  }
+  // Sem nenhum dado salvo (primeira abertura ou depois de apagar tudo): abre com dados de exemplo
+  const vazio = entries.length === 0 && Object.keys(budgets).length === 0
+    && customCategorias.entrada.length === 0 && customCategorias.saida.length === 0
+    && customInstituicoes.length === 0;
+  if(vazio){
+    const ex = gerarDadosExemplo();
+    entries = ex.entries;
+    budgets = ex.budgets;
+    await saveEntries();
+    await saveBudgets();
+  }
+  populateCategorySelect();
+  populateBudgetCategorySelect();
+  populateInstituicoesDatalist();
+  renderManagementChips();
+  refreshCategoryFilter();
+  render();
+}
+
+async function saveBudgets(){
+  try{
+    await window.storage.set(BUDGET_KEY, JSON.stringify(budgets), false);
+  }catch(e){
+    console.error('Falha ao salvar orçamentos', e);
+  }
+}
+
+document.getElementById('btn-bg-salvar').addEventListener('click', async () => {
+  const cat = document.getElementById('bg-cat').value;
+  const valor = parseFloat(document.getElementById('bg-valor').value);
+  if(!cat || !valor || valor <= 0) return;
+  budgets[cat] = valor;
+  document.getElementById('bg-valor').value = '';
+  await saveBudgets();
+  render();
+});
+
+function removeBudget(cat){
+  delete budgets[cat];
+  saveBudgets();
+  render();
+}
+
+function renderBudgets(){
+  const container = document.getElementById('budget-list');
+  const cats = Object.keys(budgets);
+  if(cats.length === 0){
+    container.innerHTML = '<div class="budget-empty">Nenhum limite definido ainda. Escolha uma categoria acima e defina um valor mensal.</div>';
+    return;
+  }
+  const currentMonth = new Date().toISOString().slice(0,7);
+  const realByCat = {};
+  const previstoByCat = {};
+  entries.filter(e => e.type === 'saida' && e.date.slice(0,7) === currentMonth).forEach(e => {
+    if(isFuture(e)){
+      previstoByCat[e.cat] = (previstoByCat[e.cat] || 0) + e.valor;
+    } else {
+      realByCat[e.cat] = (realByCat[e.cat] || 0) + e.valor;
+    }
+  });
+  container.innerHTML = cats.sort().map(cat => {
+    const limite = budgets[cat];
+    const real = realByCat[cat] || 0;
+    const previsto = previstoByCat[cat] || 0;
+    const total = real + previsto;
+    const pctReal = limite > 0 ? Math.min(100, (real / limite) * 100) : 0;
+    const pctTotal = limite > 0 ? Math.min(150, (total / limite) * 100) : 0;
+    const barClass = total > limite ? 'over' : (pctTotal >= 80 ? 'warn' : 'ok');
+    let amountsHtml;
+    if(total > limite){
+      amountsHtml = `<span class="over-label">${fmt(total)} de ${fmt(limite)} (excedeu)</span>`;
+    } else if(previsto > 0){
+      amountsHtml = `${fmt(real)} realizado + ${fmt(previsto)} previsto de ${fmt(limite)}`;
+    } else {
+      amountsHtml = `${fmt(real)} de ${fmt(limite)}`;
+    }
+    return `
+      <div class="budget-item">
+        <div class="row">
+          <span class="cat-name">${getCategoryIcon(cat)} ${escapeHtml(cat)}</span>
+          <span class="amounts">${amountsHtml}
+            <button class="budget-remove" title="Remover limite" onclick="removeBudget('${cat.replace(/'/g,"\\'")}')">&times;</button>
+          </span>
+        </div>
+        <div class="budget-bar-track">
+          <div class="budget-bar-fill ${barClass}" style="width:${Math.min(100,pctReal)}%;" title="Já realizado: ${fmt(real)}"></div>
+          ${previsto > 0 ? `<div class="budget-bar-fill previsto" style="width:${Math.max(0,Math.min(100,pctTotal)-Math.min(100,pctReal))}%;" title="Previsto (não confirmado): ${fmt(previsto)}"></div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function saveEntries(){
+  try{
+    await window.storage.set(STORE_KEY, JSON.stringify(entries), false);
+  }catch(e){
+    console.error('Falha ao salvar', e);
+  }
+}
+
+let editingId = null;
+
+function addMonths(dateStr, n){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const base = new Date(y, m-1+n, 1);
+  const lastDay = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+  base.setDate(Math.min(d, lastDay));
+  const yyyy = base.getFullYear();
+  const mm = String(base.getMonth()+1).padStart(2,'0');
+  const dd = String(base.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+const repeticaoSel = document.getElementById('f-repeticao');
+const fieldParcelas = document.getElementById('field-parcelas');
+const fieldRecorrencia = document.getElementById('field-recorrencia');
+const previewBox = document.getElementById('repeticao-preview');
+const labelValorHint = document.getElementById('label-valor-hint');
+
+function updateRepeticaoUI(){
+  const modo = repeticaoSel.value;
+  fieldParcelas.style.display = modo === 'parcelado' ? 'flex' : 'none';
+  fieldRecorrencia.style.display = modo === 'recorrente' ? 'flex' : 'none';
+  labelValorHint.textContent = (modo === 'parcelado' && !editingId) ? '(valor total da compra)' : '';
+  updatePreview();
+}
+function updatePreview(){
+  const modo = repeticaoSel.value;
+  const valor = parseFloat(document.getElementById('f-valor').value);
+  const date = document.getElementById('f-date').value;
+  const nInput = modo === 'parcelado'
+    ? document.getElementById('f-parcelas').value
+    : document.getElementById('f-recorrencia-meses').value;
+  const n = parseInt(nInput, 10);
+
+  if((modo === 'parcelado' || modo === 'recorrente') && valor > 0 && n >= 2 && date){
+    const fim = addMonths(date, n - 1);
+    const periodo = `de ${date.split('-').reverse().join('/')} até ${fim.split('-').reverse().join('/')}`;
+    previewBox.style.display = 'block';
+    if(modo === 'parcelado' && !editingId){
+      const per = Math.floor((valor / n) * 100) / 100;
+      previewBox.textContent = `${n}x de ${fmt(per)} · ${periodo}`;
+    } else {
+      previewBox.textContent = `${n} ocorrências de ${fmt(valor)}${editingId ? ' (incluindo esta)' : ' (todo mês)'} · ${periodo}`;
+    }
+    return;
+  }
+  previewBox.style.display = 'none';
+}
+['f-valor','f-date','f-parcelas','f-recorrencia-meses'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+repeticaoSel.addEventListener('change', updateRepeticaoUI);
+
+async function handleEditSave(date, desc, cat, forma, inst, valor, modo){
+  const idx = entries.findIndex(en => en.id === editingId);
+  if(idx === -1) return true;
+  const original = entries[idx];
+  const baseDesc = desc.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+
+  if(modo === 'unico'){
+    if(original.groupId){
+      entries = entries.filter(e => !(e.groupId === original.groupId && e.groupIndex > original.groupIndex));
+    }
+    const i2 = entries.findIndex(en => en.id === editingId);
+    entries[i2] = {id: original.id, date, desc: baseDesc, cat, type: currentType, valor, forma, inst, confirmado: !!original.confirmado};
+    return true;
+  }
+
+  const n = modo === 'parcelado'
+    ? parseInt(document.getElementById('f-parcelas').value, 10)
+    : parseInt(document.getElementById('f-recorrencia-meses').value, 10);
+  if(!n || n < 2){
+    alert('Informe quantas ocorrências no total (mínimo 2), incluindo esta.');
+    return false;
+  }
+
+  const groupId = original.groupId || uid();
+  const startIndex = original.groupId ? original.groupIndex : 1;
+  const newTotal = startIndex + n - 1;
+
+  entries = entries.filter(e => !(e.groupId === groupId && e.groupIndex > startIndex));
+
+  const i2 = entries.findIndex(en => en.id === editingId);
+  entries[i2] = {
+    id: original.id, date, desc: `${baseDesc} (${startIndex}/${newTotal})`,
+    cat, type: currentType, valor, forma, inst, confirmado: !!original.confirmado,
+    groupId, groupType: modo, groupIndex: startIndex, groupTotal: newTotal
+  };
+
+  for(let k = 1; k < n; k++){
+    const gi = startIndex + k;
+    const dataOcorrencia = addMonths(date, k);
+    entries.push({
+      id: uid(), date: dataOcorrencia, desc: `${baseDesc} (${gi}/${newTotal})`,
+      cat, type: currentType, valor, forma, inst, confirmado: dataOcorrencia <= todayStr(),
+      groupId, groupType: modo, groupIndex: gi, groupTotal: newTotal
+    });
+  }
+
+  if(original.groupId){
+    entries = entries.map(e => {
+      if(e.groupId === groupId && e.groupIndex < startIndex){
+        const eBase = e.desc.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+        return {...e, desc: `${eBase} (${e.groupIndex}/${newTotal})`, groupTotal: newTotal};
+      }
+      return e;
+    });
+  }
+  return true;
+}
+
+document.getElementById('entry-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const date = document.getElementById('f-date').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const cat = document.getElementById('f-cat').value;
+  const forma = document.getElementById('f-forma').value;
+  const inst = document.getElementById('f-inst').value.trim();
+  const valor = parseFloat(document.getElementById('f-valor').value);
+  const modo = repeticaoSel.value;
+  if(!date || !desc || !valor || valor <= 0) return;
+
+  if(editingId){
+    const ok = await handleEditSave(date, desc, cat, forma, inst, valor, modo);
+    if(ok === false) return;
+    await saveEntries();
+    refreshCategoryFilter();
+    cancelEdit();
+    render();
+    return;
+  }
+
+  if(modo === 'parcelado'){
+    const n = parseInt(document.getElementById('f-parcelas').value, 10);
+    if(!n || n < 2){ alert('Informe o número de parcelas (mínimo 2).'); return; }
+    const groupId = uid();
+    const perBase = Math.floor((valor / n) * 100) / 100;
+    let somaParcial = 0;
+    for(let i = 0; i < n; i++){
+      const isLast = i === n - 1;
+      const valorParcela = isLast ? Math.round((valor - somaParcial) * 100) / 100 : perBase;
+      somaParcial += valorParcela;
+      const dataParcela = addMonths(date, i);
+      entries.push({
+        id: uid(), date: dataParcela, desc: `${desc} (${i+1}/${n})`,
+        cat, type: currentType, valor: valorParcela, forma, inst, confirmado: dataParcela <= todayStr(),
+        groupId, groupType: 'parcelado', groupIndex: i+1, groupTotal: n
+      });
+    }
+    resetFormFields();
+  } else if(modo === 'recorrente'){
+    const n = parseInt(document.getElementById('f-recorrencia-meses').value, 10);
+    if(!n || n < 2){ alert('Informe por quantos meses o lançamento deve se repetir (mínimo 2).'); return; }
+    const groupId = uid();
+    for(let i = 0; i < n; i++){
+      const dataOcorrencia = addMonths(date, i);
+      entries.push({
+        id: uid(), date: dataOcorrencia, desc,
+        cat, type: currentType, valor, forma, inst, confirmado: dataOcorrencia <= todayStr(),
+        groupId, groupType: 'recorrente', groupIndex: i+1, groupTotal: n
+      });
+    }
+    resetFormFields();
+  } else {
+    entries.push({id: uid(), date, desc, cat, type: currentType, valor, forma, inst, confirmado: date <= todayStr()});
+    resetFormFields();
+  }
+  await saveEntries();
+  refreshCategoryFilter();
+  render();
+});
+
+function resetFormFields(){
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-valor').value = '';
+  document.getElementById('f-inst').value = '';
+  document.getElementById('f-parcelas').value = '';
+  document.getElementById('f-recorrencia-meses').value = '';
+  repeticaoSel.value = 'unico';
+  updateRepeticaoUI();
+}
+
+function editEntry(id){
+  const entry = entries.find(en => en.id === id);
+  if(!entry) return;
+  editingId = id;
+  setType(entry.type);
+  document.getElementById('f-date').value = entry.date;
+  document.getElementById('f-desc').value = entry.groupId ? entry.desc.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim() : entry.desc;
+  document.getElementById('f-cat').value = entry.cat;
+  document.getElementById('f-forma').value = entry.forma || FORMAS_PAGAMENTO[0];
+  document.getElementById('f-inst').value = entry.inst || '';
+  document.getElementById('f-valor').value = entry.valor;
+
+  repeticaoSel.value = entry.groupType || 'unico';
+  if(entry.groupId){
+    const remaining = entry.groupTotal - entry.groupIndex + 1;
+    document.getElementById('f-parcelas').value = entry.groupType === 'parcelado' ? remaining : '';
+    document.getElementById('f-recorrencia-meses').value = entry.groupType === 'recorrente' ? remaining : '';
+  } else {
+    document.getElementById('f-parcelas').value = '';
+    document.getElementById('f-recorrencia-meses').value = '';
+  }
+  updateRepeticaoUI();
+
+  const nota = document.getElementById('edit-grupo-note');
+  const btnQuitar = document.getElementById('btn-quitar-restante');
+  if(entry.groupId){
+    const tipoLabel = entry.groupType === 'parcelado' ? 'parcela' : 'ocorrência recorrente';
+    nota.style.display = 'block';
+    document.getElementById('edit-grupo-texto').textContent = `Esta é a ${tipoLabel} ${entry.groupIndex}/${entry.groupTotal} de uma série. Se você mudar "Repetição" abaixo, a série é redefinida a partir daqui (as ocorrências já passadas continuam como estão).`;
+    const restantes = entries.filter(e => e.groupId === entry.groupId && e.groupIndex >= entry.groupIndex);
+    if(restantes.length > 1){
+      btnQuitar.style.display = 'inline-block';
+      btnQuitar.textContent = `Quitar as ${restantes.length} parcelas restantes agora (${fmt(restantes.reduce((s,e)=>s+e.valor,0))})`;
+    } else {
+      btnQuitar.style.display = 'none';
+    }
+  } else {
+    nota.style.display = 'none';
+    btnQuitar.style.display = 'none';
+  }
+  document.getElementById('form-title').textContent = 'Editar movimentação';
+  document.getElementById('btn-submit').textContent = 'Salvar alteração';
+  document.getElementById('btn-cancelar-edicao').style.display = 'inline-block';
+  document.getElementById('entry-form').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function quitarRestante(){
+  if(!editingId) return;
+  const entry = entries.find(en => en.id === editingId);
+  if(!entry || !entry.groupId) return;
+  const restantes = entries.filter(e => e.groupId === entry.groupId && e.groupIndex >= entry.groupIndex);
+  if(restantes.length === 0) return;
+  const total = Math.round(restantes.reduce((s,e)=>s+e.valor,0) * 100) / 100;
+  const baseDesc = entry.desc.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+  const hoje = todayStr();
+  if(!confirm(
+    `Isso vai remover as ${restantes.length} parcela(s) restante(s) de "${baseDesc}" e criar um único lançamento de quitação de ${fmt(total)} na data de hoje (${hoje.split('-').reverse().join('/')}).\n\nDeseja continuar?`
+  )) return;
+
+  entries = entries.filter(e => !(e.groupId === entry.groupId && e.groupIndex >= entry.groupIndex));
+  entries.push({
+    id: uid(), date: hoje, desc: `${baseDesc} (quitação antecipada)`,
+    cat: entry.cat, type: entry.type, valor: total, forma: entry.forma, inst: entry.inst, confirmado: true
+  });
+  await saveEntries();
+  refreshCategoryFilter();
+  cancelEdit();
+  render();
+}
+document.getElementById('btn-quitar-restante').addEventListener('click', quitarRestante);
+
+function cancelEdit(){
+  editingId = null;
+  document.getElementById('edit-grupo-note').style.display = 'none';
+  document.getElementById('form-title').textContent = 'Nova movimentação';
+  document.getElementById('btn-submit').textContent = 'Adicionar';
+  document.getElementById('btn-cancelar-edicao').style.display = 'none';
+  resetFormFields();
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+}
+document.getElementById('btn-cancelar-edicao').addEventListener('click', cancelEdit);
+
+function refreshCategoryFilter(){
+  const allCats = [...new Set(entries.map(e => e.cat))].sort();
+  const catOptions = '<option value="">Todas</option>' + allCats.map(c => `<option value="${c}">${getCategoryIcon(c)} ${c}</option>`).join('');
+  ['fl-cat','gf-cat'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = catOptions;
+    sel.value = prev;
+  });
+
+  const allInst = [...new Set(entries.map(e => e.inst).filter(Boolean))].sort();
+  const instOptions = '<option value="">Todas</option>' + allInst.map(i => `<option value="${i}">${i}</option>`).join('');
+  ['fl-inst','gf-inst','sum-inst'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = instOptions;
+    sel.value = prev;
+  });
+}
+
+['fl-de','fl-ate','fl-tipo','fl-situacao','fl-cat','fl-forma','fl-inst','fl-busca'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+// Filtro rápido de instituição na faixa de resumo: espelha e controla o
+// mesmo filtro "Instituição" usado na tabela de Movimentações (fl-inst).
+document.getElementById('sum-inst').addEventListener('input', () => {
+  document.getElementById('fl-inst').value = document.getElementById('sum-inst').value;
+  render();
+});
+function limparFiltros(){
+  document.getElementById('fl-de').value = '';
+  document.getElementById('fl-ate').value = '';
+  document.getElementById('fl-tipo').value = '';
+  document.getElementById('fl-situacao').value = '';
+  document.getElementById('fl-cat').value = '';
+  document.getElementById('fl-forma').value = '';
+  document.getElementById('fl-inst').value = '';
+  document.getElementById('fl-busca').value = '';
+  render();
+}
+document.getElementById('btn-limpar-filtros').addEventListener('click', limparFiltros);
+document.getElementById('btn-ver-tudo').addEventListener('click', limparFiltros);
+
+function todayStr(){
+  return new Date().toISOString().slice(0,10);
+}
+function isDataFutura(entry){
+  return entry.date > todayStr();
+}
+// Entradas antigas (antes desta função existir) não têm o campo "confirmado" gravado.
+// Nesse caso, mantém o comportamento anterior: considera pago se a data já não é futura.
+function isConfirmed(entry){
+  if(entry.confirmado === true) return true;
+  if(entry.confirmado === false) return false;
+  return !isDataFutura(entry);
+}
+function isFuture(entry){
+  return !isConfirmed(entry);
+}
+async function toggleConfirmado(id){
+  const entry = entries.find(e => e.id === id);
+  if(!entry) return;
+  entry.confirmado = !isConfirmed(entry);
+  await saveEntries();
+  refreshCategoryFilter();
+  render();
+}
+
+// Soma o saldo (entradas - saídas) de TODOS os lançamentos com data anterior a
+// "dataLimite", ignorando o filtro de período ativo. Isso é o que permite que o
+// saldo exibido continue de onde parou no mês/período anterior, em vez de
+// zerar sempre que o filtro de data não inclui lançamentos antigos.
+function saldoAcumuladoAntes(dataLimite, incluirPrevistos, filtros){
+  if(!dataLimite) return 0;
+  const f = filtros || {};
+  return entries.reduce((s,e) => {
+    if(e.date >= dataLimite) return s;
+    if(!incluirPrevistos && isFuture(e)) return s;
+    if(f.tipo && e.type !== f.tipo) return s;
+    if(f.cat && e.cat !== f.cat) return s;
+    if(f.forma && e.forma !== f.forma) return s;
+    if(f.inst && e.inst !== f.inst) return s;
+    if(f.busca && !e.desc.toLowerCase().includes(f.busca)) return s;
+    return s + (e.type === 'entrada' ? e.valor : -e.valor);
+  }, 0);
+}
+
+function hasActiveFilters(){
+  return !!(
+    document.getElementById('fl-de').value ||
+    document.getElementById('fl-ate').value ||
+    document.getElementById('fl-tipo').value ||
+    document.getElementById('fl-situacao').value ||
+    document.getElementById('fl-cat').value ||
+    document.getElementById('fl-forma').value ||
+    document.getElementById('fl-inst').value ||
+    document.getElementById('fl-busca').value.trim()
+  );
+}
+
+function getFilteredForCharts(){
+  const de = document.getElementById('gf-de').value;
+  const ate = document.getElementById('gf-ate').value;
+  const tipo = document.getElementById('gf-tipo').value;
+  const situacao = document.getElementById('gf-situacao').value;
+  const cat = document.getElementById('gf-cat').value;
+  const forma = document.getElementById('gf-forma').value;
+  const inst = document.getElementById('gf-inst').value;
+  return entries.filter(e => {
+    if(de && e.date < de) return false;
+    if(ate && e.date > ate) return false;
+    if(tipo && e.type !== tipo) return false;
+    if(situacao === 'previsto' && !isFuture(e)) return false;
+    if(situacao === 'realizado' && isFuture(e)) return false;
+    if(cat && e.cat !== cat) return false;
+    if(forma && e.forma !== forma) return false;
+    if(inst && e.inst !== inst) return false;
+    return true;
+  });
+}
+function hasActiveChartFilters(){
+  return !!(
+    document.getElementById('gf-de').value ||
+    document.getElementById('gf-ate').value ||
+    document.getElementById('gf-tipo').value ||
+    document.getElementById('gf-situacao').value ||
+    document.getElementById('gf-cat').value ||
+    document.getElementById('gf-forma').value ||
+    document.getElementById('gf-inst').value
+  );
+}
+['gf-de','gf-ate','gf-tipo','gf-situacao','gf-cat','gf-forma','gf-inst'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderCharts);
+});
+document.getElementById('btn-limpar-filtros-graf').addEventListener('click', () => {
+  document.getElementById('gf-de').value = '';
+  document.getElementById('gf-ate').value = '';
+  document.getElementById('gf-tipo').value = '';
+  document.getElementById('gf-situacao').value = '';
+  document.getElementById('gf-cat').value = '';
+  document.getElementById('gf-forma').value = '';
+  document.getElementById('gf-inst').value = '';
+  renderCharts();
+});
+
+function getFiltered(){
+  const de = document.getElementById('fl-de').value;
+  const ate = document.getElementById('fl-ate').value;
+  const tipo = document.getElementById('fl-tipo').value;
+  const situacao = document.getElementById('fl-situacao').value;
+  const cat = document.getElementById('fl-cat').value;
+  const forma = document.getElementById('fl-forma').value;
+  const inst = document.getElementById('fl-inst').value;
+  const busca = document.getElementById('fl-busca').value.trim().toLowerCase();
+  return entries.filter(e => {
+    if(de && e.date < de) return false;
+    if(ate && e.date > ate) return false;
+    if(tipo && e.type !== tipo) return false;
+    if(situacao === 'previsto' && !isFuture(e)) return false;
+    if(situacao === 'realizado' && isFuture(e)) return false;
+    if(cat && e.cat !== cat) return false;
+    if(forma && e.forma !== forma) return false;
+    if(inst && e.inst !== inst) return false;
+    if(busca && !e.desc.toLowerCase().includes(busca)) return false;
+    return true;
+  }).sort((a,b) => {
+    let va, vb;
+    switch(sortCol){
+      case 'desc': va = a.desc.toLowerCase(); vb = b.desc.toLowerCase(); break;
+      case 'cat': va = a.cat.toLowerCase(); vb = b.cat.toLowerCase(); break;
+      case 'valor': va = a.valor; vb = b.valor; break;
+      default: va = a.date; vb = b.date;
+    }
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+}
+
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if(sortCol === col){
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortCol = col;
+      sortDir = 'asc';
+    }
+    render();
+  });
+});
+
+function updateSortIndicators(){
+  document.querySelectorAll('.sort-ind').forEach(s => {
+    s.textContent = s.dataset.col === sortCol ? (sortDir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+async function deleteEntry(id){
+  const entry = entries.find(e => e.id === id);
+  if(!entry) return;
+  const label = `"${entry.desc}" (${fmt(entry.valor)})`;
+
+  if(entry.groupId){
+    const tipoLabel = entry.groupType === 'parcelado' ? 'parcela' : 'lançamento recorrente';
+    const excluirGrupo = confirm(
+      `${label} faz parte de uma série (${tipoLabel} ${entry.groupIndex}/${entry.groupTotal}).\n\n` +
+      `Clique OK para excluir TODAS as ${entry.groupTotal} ocorrências dessa série, ou Cancelar para excluir apenas esta.`
+    );
+    if(excluirGrupo){
+      entries = entries.filter(e => e.groupId !== entry.groupId);
+    } else {
+      if(!confirm(`Excluir apenas "${entry.desc}"? Essa ação não pode ser desfeita.`)) return;
+      entries = entries.filter(e => e.id !== id);
+    }
+  } else {
+    if(!confirm(`Excluir ${label}? Essa ação não pode ser desfeita.`)) return;
+    entries = entries.filter(e => e.id !== id);
+  }
+  await saveEntries();
+  refreshCategoryFilter();
+  render();
+}
+
+function render(){
+  updateSortIndicators();
+  document.getElementById('sum-inst').value = document.getElementById('fl-inst').value;
+  const filtered = getFiltered();
+  const tbody = document.getElementById('tbody');
+  if(filtered.length === 0){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhuma movimentação encontrada. Adicione uma entrada ou saída acima.</td></tr>';
+  } else {
+    tbody.innerHTML = filtered.map(e => {
+      const pagamento = [e.forma, e.inst].filter(Boolean).join(' · ');
+      const dataFutura = isDataFutura(e);
+      const confirmed = isConfirmed(e);
+      const previsto = !confirmed;
+      const grupoBadge = e.groupId
+        ? `<span class="badge-grupo ${e.groupType}" title="${e.groupType === 'parcelado' ? 'Parcelado' : 'Recorrente'}">${e.groupType === 'parcelado' ? '💳' : '🔁'} ${e.groupIndex}/${e.groupTotal}</span>`
+        : '';
+      let statusBadge = '';
+      if(e.saldoInicial){
+        statusBadge = ''; // sempre confirmado; a categoria "Saldo inicial" já identifica a linha
+      } else if(!confirmed){
+        statusBadge = dataFutura
+          ? '<span class="badge-previsto">Previsto</span>'
+          : '<span class="badge-atrasado" title="A data já passou, mas ainda não foi confirmado como pago">⏰ Pendente</span>';
+      } else if(dataFutura){
+        statusBadge = '<span class="badge-confirmado" title="Confirmado manualmente antes da data">✓ Confirmado</span>';
+      }
+      const checkboxRealizado = `<label class="chk-previsto" title="${confirmed ? 'Desmarcar (voltar a pendente/previsto)' : 'Marcar como pago/realizado'}">
+             <input type="checkbox" ${confirmed ? 'checked' : ''} onchange="toggleConfirmado('${e.id}')">
+           </label>`;
+      return `
+      <tr class="${previsto ? 'previsto' : ''}">
+        <td class="date">${e.date.split('-').reverse().join('/')}</td>
+        <td>${escapeHtml(e.desc)}${statusBadge}${grupoBadge}</td>
+        <td><span class="tag">${getCategoryIcon(e.cat)} ${escapeHtml(e.cat)}</span></td>
+        <td style="color:var(--ink-soft);font-size:13px;">${escapeHtml(pagamento) || '—'}</td>
+        <td class="num amount-${e.type}">${e.type==='entrada'?'+':'-'} ${fmt(e.valor)}</td>
+        <td style="white-space:nowrap;">
+          ${e.saldoInicial ? '' : checkboxRealizado}
+          ${e.saldoInicial ? '' : `<button class="del-btn" title="Editar" onclick="editEntry('${e.id}')">&#9998;</button>`}
+          <button class="del-btn" title="Excluir" onclick="deleteEntry('${e.id}')">&times;</button>
+        </td>
+      </tr>
+    `;
+    }).join('');
+  }
+
+  const filtrosAtivos = hasActiveFilters();
+  const dataDe = document.getElementById('fl-de').value;
+  const filtrosSaldo = {
+    tipo: document.getElementById('fl-tipo').value,
+    cat: document.getElementById('fl-cat').value,
+    forma: document.getElementById('fl-forma').value,
+    inst: document.getElementById('fl-inst').value,
+    busca: document.getElementById('fl-busca').value.trim().toLowerCase()
+  };
+  const saldoAnterior = saldoAcumuladoAntes(dataDe, false, filtrosSaldo);
+  const saldoAnteriorProjetado = saldoAcumuladoAntes(dataDe, true, filtrosSaldo);
+
+  const realizados = filtered.filter(e => !isFuture(e));
+  // Saldo inicial não é receita nem despesa: fica fora de "Entradas/Saídas realizadas",
+  // mas soma no saldo quando cai dentro do período filtrado.
+  const totalEntradas = realizados.filter(e=>e.type==='entrada' && !e.saldoInicial).reduce((s,e)=>s+e.valor,0);
+  const totalSaidas = realizados.filter(e=>e.type==='saida' && !e.saldoInicial).reduce((s,e)=>s+e.valor,0);
+  const saldoInicialNoPeriodo = realizados.filter(e=>e.saldoInicial).reduce((s,e)=>s+saldoInicialComSinal(e),0);
+  const saldoAtual = saldoAnterior + saldoInicialNoPeriodo + totalEntradas - totalSaidas;
+
+  const totalEntradasAll = filtered.filter(e=>e.type==='entrada').reduce((s,e)=>s+e.valor,0);
+  const totalSaidasAll = filtered.filter(e=>e.type==='saida').reduce((s,e)=>s+e.valor,0);
+  const saldoProjetado = saldoAnteriorProjetado + totalEntradasAll - totalSaidasAll;
+  const qtdFuturos = filtered.filter(isFuture).length;
+
+  document.getElementById('sum-entradas').textContent = fmt(totalEntradas);
+  document.getElementById('sum-saidas').textContent = fmt(totalSaidas);
+  document.getElementById('sum-saldo').textContent = fmt(saldoAtual);
+  const cellSaldo = document.getElementById('cell-saldo');
+  cellSaldo.classList.remove('positivo','negativo');
+  cellSaldo.classList.add(saldoAtual >= 0 ? 'positivo' : 'negativo');
+  document.getElementById('sum-projetado').textContent = fmt(saldoProjetado);
+  document.getElementById('sum-projetado-nota').textContent = qtdFuturos > 0 ? `(${qtdFuturos} previsto${qtdFuturos>1?'s':''})` : '';
+  document.getElementById('filtro-indicator').style.display = filtrosAtivos ? 'flex' : 'none';
+
+  renderSaldosInstituicoes();
+  renderSaldosIniciais();
+  renderBudgets();
+  renderCharts();
+}
+
+
+// Saldo atual e projetado por instituição, sobre todo o histórico (ignora filtros
+// de período). Segue a mesma regra do resumo do topo: o saldo atual conta só o que
+// está confirmado; o projetado soma também os lançamentos previstos.
+function renderSaldosInstituicoes(){
+  const tbody = document.getElementById('tbody-saldos');
+  const tfoot = document.getElementById('tfoot-saldos');
+  if(!tbody || !tfoot) return;
+
+  const centavos = v => Math.round(v * 100) / 100 || 0; // evita "-R$ 0,00" por erro de ponto flutuante
+  const classeSinal = v => v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero';
+
+  const grupos = {};
+  entries.forEach(e => {
+    const nome = e.inst || '';
+    if(!grupos[nome]) grupos[nome] = {atual:0, projetado:0, qtdPrevistos:0};
+    const v = e.type === 'entrada' ? e.valor : -e.valor;
+    grupos[nome].projetado += v;
+    if(isConfirmed(e)) grupos[nome].atual += v;
+    else grupos[nome].qtdPrevistos++;
+  });
+
+  // Ordem alfabética; lançamentos sem instituição ficam por último.
+  const nomes = Object.keys(grupos).sort((a,b) => {
+    if(a === '') return 1;
+    if(b === '') return -1;
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  if(nomes.length === 0){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum saldo ainda. Defina o saldo inicial de cada instituição abaixo ou registre uma movimentação.</td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  let totalAtual = 0, totalProjetado = 0, totalQtd = 0;
+  tbody.innerHTML = nomes.map(nome => {
+    const g = grupos[nome];
+    const atual = centavos(g.atual);
+    const projetado = centavos(g.projetado);
+    const previstos = centavos(projetado - atual);
+    totalAtual += atual;
+    totalProjetado += projetado;
+    totalQtd += g.qtdPrevistos;
+
+    const previstosHtml = g.qtdPrevistos === 0
+      ? '—'
+      : `${previstos >= 0 ? '+' : '-'} ${fmt(Math.abs(previstos))}<span class="sub">${g.qtdPrevistos} lançamento${g.qtdPrevistos > 1 ? 's' : ''}</span>`;
+    const previstosClasse = g.qtdPrevistos === 0 ? 'zero' : classeSinal(previstos);
+
+    return `
+      <tr>
+        <td class="inst ${nome ? '' : 'sem'}">${nome ? escapeHtml(nome) : 'Sem instituição'}</td>
+        <td class="num ${classeSinal(atual)}">${fmt(atual)}</td>
+        <td class="num ${previstosClasse}">${previstosHtml}</td>
+        <td class="num proj ${projetado < 0 ? 'neg' : ''}">${fmt(projetado)}</td>
+      </tr>`;
+  }).join('');
+
+  totalAtual = centavos(totalAtual);
+  totalProjetado = centavos(totalProjetado);
+  const totalPrevistos = centavos(totalProjetado - totalAtual);
+  const totalPrevistosHtml = totalQtd === 0
+    ? '—'
+    : `${totalPrevistos >= 0 ? '+' : '-'} ${fmt(Math.abs(totalPrevistos))}<span class="sub">${totalQtd} lançamento${totalQtd > 1 ? 's' : ''}</span>`;
+
+  tfoot.innerHTML = `
+    <tr>
+      <td>Total</td>
+      <td class="num ${classeSinal(totalAtual)}">${fmt(totalAtual)}</td>
+      <td class="num ${totalQtd === 0 ? 'zero' : classeSinal(totalPrevistos)}">${totalPrevistosHtml}</td>
+      <td class="num proj ${totalProjetado < 0 ? 'neg' : ''}">${fmt(totalProjetado)}</td>
+    </tr>`;
+}
+
+// ---------- Saldo inicial ----------
+// Guardado como um lançamento comum (flag saldoInicial), um por instituição.
+// Entra em todos os saldos, mas fica de fora dos totais de entradas/saídas e do
+// gráfico de saídas por categoria, porque não é receita nem despesa.
+const saldoInicialComSinal = e => e.type === 'entrada' ? e.valor : -e.valor;
+
+function instCanonica(nome){
+  // Reaproveita a grafia já usada (ignorando maiúsculas/minúsculas) para não
+  // criar "nubank" e "Nubank" como instituições diferentes.
+  const conhecidas = [...getInstituicoes(), ...entries.map(e => e.inst).filter(Boolean)];
+  return conhecidas.find(i => i.toLowerCase() === nome.toLowerCase()) || nome;
+}
+
+function renderSaldosIniciais(){
+  const box = document.getElementById('chip-list-si');
+  if(!box) return;
+  const lista = entries.filter(e => e.saldoInicial)
+    .sort((a,b) => (a.inst || '').localeCompare(b.inst || '', 'pt-BR'));
+  box.innerHTML = lista.length === 0
+    ? '<span class="budget-empty">Nenhum saldo inicial definido ainda.</span>'
+    : lista.map(e => {
+        const v = saldoInicialComSinal(e);
+        return `<span class="chip ${e.type}">${escapeHtml(e.inst || '')} · ${v < 0 ? '-' : ''}${fmt(Math.abs(v))} · ${e.date.split('-').reverse().join('/')}
+          <button type="button" title="Remover saldo inicial" aria-label="Remover saldo inicial de ${escapeHtml(e.inst || '')}" onclick="removerSaldoInicial('${e.id}')">&times;</button>
+        </span>`;
+      }).join('');
+}
+
+async function removerSaldoInicial(id){
+  const e = entries.find(x => x.id === id);
+  if(!e) return;
+  if(!confirm(`Remover o saldo inicial de ${e.inst} (${fmt(saldoInicialComSinal(e))})? Os saldos serão recalculados sem ele.`)) return;
+  entries = entries.filter(x => x.id !== id);
+  await saveEntries();
+  refreshCategoryFilter();
+  render();
+}
+
+document.getElementById('saldo-inicial-form').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const nomeDigitado = document.getElementById('si-inst').value.trim();
+  const valor = parseFloat(document.getElementById('si-valor').value);
+  const data = document.getElementById('si-data').value;
+  if(!nomeDigitado || !data) return;
+  if(isNaN(valor) || valor === 0){
+    alert('Informe um valor diferente de zero. Para uma conta sem saldo, não é preciso definir saldo inicial.');
+    return;
+  }
+  const inst = instCanonica(nomeDigitado);
+  const existente = entries.find(e => e.saldoInicial && e.inst === inst);
+  if(existente && !confirm(`${inst} já tem saldo inicial de ${fmt(saldoInicialComSinal(existente))}. Substituir pelo novo valor?`)) return;
+
+  entries = entries.filter(e => !(e.saldoInicial && e.inst === inst));
+  entries.push({
+    id: uid(), date: data, desc: 'Saldo inicial', cat: 'Saldo inicial',
+    type: valor > 0 ? 'entrada' : 'saida',
+    valor: Math.round(Math.abs(valor) * 100) / 100,
+    forma: '', inst, confirmado: true, saldoInicial: true
+  });
+  await saveEntries();
+  refreshCategoryFilter();
+  render();
+  document.getElementById('si-inst').value = '';
+  document.getElementById('si-valor').value = '';
+  document.getElementById('si-inst').focus();
+});
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function monthKey(dateStr){
+  return dateStr.slice(0,7);
+}
+function monthLabel(key){
+  const [y,m] = key.split('-');
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return meses[parseInt(m,10)-1] + '/' + y.slice(2);
+}
+
+function renderCharts(){
+  const dados = getFilteredForCharts();
+  const sorted = [...dados].sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('filtro-indicator-graf').style.display = hasActiveChartFilters() ? 'flex' : 'none';
+
+  const monthMap = {};
+  sorted.forEach(e => {
+    if(e.saldoInicial) return; // não é receita nem despesa
+    const k = monthKey(e.date);
+    if(!monthMap[k]) monthMap[k] = {entrada:0, saida:0};
+    monthMap[k][e.type] += e.valor;
+  });
+  const months = Object.keys(monthMap).sort();
+  const entradasArr = months.map(m => Math.round(monthMap[m].entrada*100)/100);
+  const saidasArr = months.map(m => Math.round(monthMap[m].saida*100)/100);
+
+  const ctx1 = document.getElementById('chart-mensal');
+  if(chartMensal) chartMensal.destroy();
+  chartMensal = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: months.map(monthLabel),
+      datasets: [
+        {label:'Entradas', data: entradasArr, backgroundColor:'#0B7A53', borderRadius:4, maxBarThickness:24},
+        {label:'Saídas', data: saidasArr, backgroundColor:'#C42B2B', borderRadius:4, maxBarThickness:24}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{callback:v=>'R$ '+v}, grid:{color:'#E2DCCC'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+
+  const catMap = {};
+  dados.filter(e=>e.type==='saida' && !e.saldoInicial).forEach(e => {
+    catMap[e.cat] = (catMap[e.cat]||0) + e.valor;
+  });
+  // ordena por valor decrescente para leitura mais natural
+  const catEntries = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
+  const catLabels = catEntries.map(e => e[0]);
+  const catValues = catEntries.map(e => Math.round(e[1]*100)/100);
+  const palette = ['#0B1F3A','#C9A24B','#1E8C8C','#5B6B7F','#7A5C14','#3B7DBF','#8A97AD','#2F5D50','#A9B8CC','#16345E'];
+
+  const total = catValues.reduce((a,b)=>a+b,0);
+  document.getElementById('legend-categoria-total-value').textContent = total>0 ? fmt(total) : 'R$ 0';
+
+  document.getElementById('legend-categoria').innerHTML = catLabels.map((c,i) => {
+    const pct = total>0 ? Math.round(catValues[i]/total*100) : 0;
+    const color = palette[i%palette.length];
+    return `<div class="legend-row">
+      <span class="legend-dot" style="background:${color}"></span>
+      <span class="legend-name">${getCategoryIcon(c)} ${escapeHtml(c)}</span>
+      <span class="legend-bar"><span class="legend-bar-fill" style="width:${pct}%;background:${color}"></span></span>
+      <span class="legend-pct">${pct}%</span>
+      <span class="legend-value">${fmt(catValues[i])}</span>
+    </div>`;
+  }).join('') || '<div class="legend-row" style="color:var(--ink-soft);border-bottom:none;">Sem saídas registradas ainda.</div>';
+
+  const dataDeGraf = document.getElementById('gf-de').value;
+  const filtrosSaldoGraf = {
+    tipo: document.getElementById('gf-tipo').value,
+    cat: document.getElementById('gf-cat').value,
+    forma: document.getElementById('gf-forma').value,
+    inst: document.getElementById('gf-inst').value
+  };
+  let saldo = saldoAcumuladoAntes(dataDeGraf, true, filtrosSaldoGraf);
+  const allDates = sorted.map(e=>e.date);
+  let uniqueDates = [...new Set(allDates)];
+  const balByDate = {};
+  sorted.forEach(e => {
+    saldo += e.type === 'entrada' ? e.valor : -e.valor;
+    balByDate[e.date] = Math.round(saldo*100)/100;
+  });
+  // Garante continuidade: se o período filtrado carrega saldo de lançamentos
+  // anteriores mas não tem (ainda) nenhum lançamento logo no início dele
+  // (ex.: mês recém-virado, sem lançamentos), inclui um ponto de partida com
+  // o saldo herdado, em vez de deixar o gráfico começar do zero.
+  if(dataDeGraf && (uniqueDates.length === 0 || uniqueDates[0] > dataDeGraf)){
+    uniqueDates = [dataDeGraf, ...uniqueDates];
+    balByDate[dataDeGraf] = Math.round(saldoAcumuladoAntes(dataDeGraf, true, filtrosSaldoGraf)*100)/100;
+  }
+  const saldoLabels = uniqueDates.map(d => d.split('-').reverse().join('/'));
+  const today = todayStr();
+  let splitIdx = -1;
+  uniqueDates.forEach((d,i) => { if(d <= today) splitIdx = i; });
+  const realizadoData = uniqueDates.map((d,i) => i <= splitIdx ? balByDate[d] : null);
+  const previstoData = uniqueDates.map((d,i) => i >= splitIdx ? balByDate[d] : null);
+  const temPrevisto = uniqueDates.some(d => d > today);
+
+  const ctx3 = document.getElementById('chart-saldo');
+  if(chartSaldo) chartSaldo.destroy();
+  chartSaldo = new Chart(ctx3, {
+    type: 'line',
+    data: {
+      labels: saldoLabels,
+      datasets: [
+        {
+          label:'Realizado', data: realizadoData,
+          borderColor:'#0B1F3A', backgroundColor:'rgba(11,31,58,0.10)',
+          fill:true, tension:0.25, pointRadius:3, pointBackgroundColor:'#0B1F3A', borderWidth:2, spanGaps:false
+        },
+        {
+          label:'Previsto', data: previstoData,
+          borderColor:'#B08A32', backgroundColor:'transparent',
+          borderDash:[6,4], fill:false, tension:0.25, pointRadius:3,
+          pointBackgroundColor:'#F5F2EA', pointBorderColor:'#B08A32', borderWidth:2, spanGaps:false
+        }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{callback:v=>'R$ '+v}, grid:{color:'#E2DCCC'}},
+        x:{grid:{display:false}, ticks:{maxRotation:45, autoSkip:true, maxTicksLimit:10}}
+      }
+    }
+  });
+  document.getElementById('legend-saldo').innerHTML = temPrevisto
+    ? `<span><i style="background:#0B1F3A"></i>Realizado</span><span><i style="background:#F5F2EA;border:1.5px dashed #B08A32;"></i>Previsto</span>`
+    : '';
+
+  // --- Saldo final por mês (histórico completo, ignora o filtro De/Até) ---
+  const tipoGraf = document.getElementById('gf-tipo').value;
+  const situacaoGraf = document.getElementById('gf-situacao').value;
+  const catGraf = document.getElementById('gf-cat').value;
+  const formaGraf = document.getElementById('gf-forma').value;
+  const instGraf = document.getElementById('gf-inst').value;
+  const todosOrdenados = entries.filter(e => {
+    if(tipoGraf && e.type !== tipoGraf) return false;
+    if(situacaoGraf === 'previsto' && !isFuture(e)) return false;
+    if(situacaoGraf === 'realizado' && isFuture(e)) return false;
+    if(catGraf && e.cat !== catGraf) return false;
+    if(formaGraf && e.forma !== formaGraf) return false;
+    if(instGraf && e.inst !== instGraf) return false;
+    return true;
+  }).sort((a,b) => a.date.localeCompare(b.date));
+
+  let acumuladoMensal = 0;
+  const saldoFinalPorMes = {};
+  todosOrdenados.forEach(e => {
+    acumuladoMensal += e.type === 'entrada' ? e.valor : -e.valor;
+    saldoFinalPorMes[monthKey(e.date)] = Math.round(acumuladoMensal*100)/100;
+  });
+  const mesesSaldo = Object.keys(saldoFinalPorMes).sort();
+  const saldoFinalArr = mesesSaldo.map(m => saldoFinalPorMes[m]);
+  const coresSaldoMensal = saldoFinalArr.map(v => v >= 0 ? '#0B7A53' : '#C42B2B');
+  const hojeMesKey = monthKey(todayStr());
+
+  const ctx4 = document.getElementById('chart-saldo-mensal');
+  if(chartSaldoMensal) chartSaldoMensal.destroy();
+  chartSaldoMensal = new Chart(ctx4, {
+    type: 'bar',
+    data: {
+      labels: mesesSaldo.map(monthLabel),
+      datasets: [{
+        label: 'Saldo final',
+        data: saldoFinalArr,
+        backgroundColor: coresSaldoMensal,
+        borderRadius: 4,
+        maxBarThickness: 36
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: (ctx) => {
+              const k = mesesSaldo[ctx.dataIndex];
+              const sufixo = k === hojeMesKey ? ' (em andamento)' : '';
+              return 'R$ ' + ctx.parsed.y.toFixed(2) + sufixo;
+            }
+          }
+        }
+      },
+      scales:{
+        y:{ticks:{callback:v=>'R$ '+v}, grid:{color:'#E2DCCC'}},
+        x:{grid:{display:false}, ticks:{maxRotation:45, autoSkip:true, maxTicksLimit:12}}
+      }
+    }
+  });
+}
+
+async function exportJson(){
+  const payload = {
+    app: 'livro-caixa',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    entries,
+    budgets,
+    customCategorias,
+    customInstituicoes
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const stamp = new Date().toISOString().slice(0,10);
+  const filename = `livro-caixa-backup-${stamp}.json`;
+
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{description: 'Backup JSON', accept: {'application/json': ['.json']}}]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return;
+      console.warn('Seletor de pasta indisponível, usando download padrão.', err);
+    }
+  }
+
+  const blob = new Blob([json], {type:'application/json;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function importJson(file){
+  let data;
+  try{
+    const text = await file.text();
+    data = JSON.parse(text);
+  }catch(err){
+    alert('Não foi possível ler o arquivo. Verifique se é um backup .json válido gerado por este app.');
+    return;
+  }
+  if(!data || !Array.isArray(data.entries)){
+    alert('Este arquivo não parece ser um backup válido do Livro Caixa.');
+    return;
+  }
+
+  const substituir = confirm(
+    `Este backup contém ${data.entries.length} lançamento(s), ${Object.keys(data.budgets||{}).length} orçamento(s), ` +
+    `${((data.customCategorias||{}).entrada||[]).length + ((data.customCategorias||{}).saida||[]).length} categoria(s) personalizada(s) e ${(data.customInstituicoes||[]).length} instituição(ões) personalizada(s).\n\n` +
+    `Clique OK para SUBSTITUIR todos os dados atuais pelos do backup (recomendado ao restaurar em um novo aparelho/navegador).\n` +
+    `Clique Cancelar para MESCLAR com os dados atuais (adiciona sem apagar o que já existe).`
+  );
+
+  if(substituir){
+    entries = data.entries || [];
+    budgets = data.budgets || {};
+    customCategorias = data.customCategorias || {entrada:[], saida:[]};
+    customInstituicoes = data.customInstituicoes || [];
+  } else {
+    const existingIds = new Set(entries.map(e => e.id));
+    (data.entries || []).forEach(e => { if(!existingIds.has(e.id)) entries.push(e); });
+    budgets = {...budgets, ...(data.budgets || {})};
+    const importCat = data.customCategorias || {entrada:[], saida:[]};
+    customCategorias.entrada = [...new Set([...customCategorias.entrada, ...(importCat.entrada||[])])];
+    customCategorias.saida = [...new Set([...customCategorias.saida, ...(importCat.saida||[])])];
+    customInstituicoes = [...new Set([...customInstituicoes, ...(data.customInstituicoes || [])])];
+  }
+
+  await saveEntries();
+  await saveBudgets();
+  await saveCustomLists();
+  populateCategorySelect();
+  populateBudgetCategorySelect();
+  populateInstituicoesDatalist();
+  renderManagementChips();
+  refreshCategoryFilter();
+  render();
+  alert('Backup importado com sucesso.');
+}
+
+async function exportCsv(){
+  const header = ['data','tipo','descricao','categoria','forma_pagamento','instituicao','valor','grupo_tipo','grupo_indice','grupo_total','confirmado'];
+  const rows = [...entries].sort((a,b)=>a.date.localeCompare(b.date)).map(e => [
+    e.date,
+    e.type,
+    csvEscape(e.desc),
+    csvEscape(e.cat),
+    csvEscape(e.forma || ''),
+    csvEscape(e.inst || ''),
+    e.valor.toFixed(2),
+    e.groupType || '',
+    e.groupIndex || '',
+    e.groupTotal || '',
+    e.confirmado ? 'sim' : ''
+  ].join(';'));
+  const csv = '\uFEFF' + [header.join(';'), ...rows].join('\r\n');
+  const stamp = new Date().toISOString().slice(0,10);
+  const filename = `livro-caixa-${stamp}.csv`;
+
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{description: 'Arquivo CSV', accept: {'text/csv': ['.csv']}}]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(csv);
+      await writable.close();
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return;
+      console.warn('Seletor de pasta indisponível, usando download padrão.', err);
+    }
+  }
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(s){
+  const str = String(s);
+  if(str.includes(';') || str.includes('"') || str.includes('\n')){
+    return '"' + str.replace(/"/g,'""') + '"';
+  }
+  return str;
+}
+
+function parseCsvLine(line){
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(inQuotes){
+      if(c === '"' && line[i+1] === '"'){ cur+='"'; i++; }
+      else if(c === '"'){ inQuotes = false; }
+      else{ cur += c; }
+    } else {
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ';'){ out.push(cur); cur=''; }
+      else{ cur += c; }
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+async function importCsv(file){
+  const text = await file.text();
+  const clean = text.replace(/^\uFEFF/, '');
+  const lines = clean.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if(lines.length < 2){
+    alert('O arquivo CSV está vazio ou em formato inesperado.');
+    return;
+  }
+  const header = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+  const idxData = header.indexOf('data');
+  const idxTipo = header.indexOf('tipo');
+  const idxDesc = header.indexOf('descricao');
+  const idxCat = header.indexOf('categoria');
+  const idxForma = header.indexOf('forma_pagamento');
+  const idxInst = header.indexOf('instituicao');
+  const idxValor = header.indexOf('valor');
+  const idxConfirmado = header.indexOf('confirmado');
+  if(idxData<0 || idxTipo<0 || idxDesc<0 || idxCat<0 || idxValor<0){
+    alert('Cabeçalho do CSV não reconhecido. Use um arquivo exportado por este app.');
+    return;
+  }
+  let imported = 0;
+  for(let i=1;i<lines.length;i++){
+    const cols = parseCsvLine(lines[i]);
+    const date = (cols[idxData]||'').trim();
+    const type = (cols[idxTipo]||'').trim().toLowerCase();
+    const desc = (cols[idxDesc]||'').trim();
+    const cat = (cols[idxCat]||'').trim();
+    const forma = idxForma>-1 ? (cols[idxForma]||'').trim() : '';
+    const inst = idxInst>-1 ? (cols[idxInst]||'').trim() : '';
+    const valor = parseFloat((cols[idxValor]||'').replace(',','.'));
+    const confirmado = idxConfirmado>-1 ? /^(sim|true|1)$/i.test((cols[idxConfirmado]||'').trim()) : false;
+    if(!date || !desc || !(type==='entrada'||type==='saida') || isNaN(valor) || valor<=0) continue;
+    entries.push({id: uid(), date, desc, cat: cat || 'Outros', forma, inst, type, valor, confirmado,
+      ...(cat === 'Saldo inicial' ? {saldoInicial: true, confirmado: true} : {})});
+    imported++;
+  }
+  await saveEntries();
+  refreshCategoryFilter();
+  render();
+  alert(imported > 0 ? `${imported} lançamento(s) importado(s) com sucesso.` : 'Nenhum lançamento válido encontrado no arquivo.');
+}
+
+document.getElementById('btn-exportar').addEventListener('click', exportJson);
+document.getElementById('btn-exportar-csv').addEventListener('click', exportCsv);
+document.getElementById('btn-importar').addEventListener('click', () => {
+  document.getElementById('input-importar').click();
+});
+document.getElementById('input-importar').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(file){
+    if(file.name.toLowerCase().endsWith('.json')){
+      importJson(file);
+    } else {
+      importCsv(file);
+    }
+  }
+  e.target.value = '';
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected','false');
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+    const target = document.getElementById(btn.dataset.tab);
+    target.classList.add('active');
+    document.getElementById('summary-block').classList.toggle('oculto', btn.dataset.tab === 'tab-saldos');
+    if(btn.dataset.tab === 'tab-graf'){
+      renderCharts();
+    }
+  });
+});
+
+function primeiroDiaMesAtual(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+}
+function ultimoDiaMesAtual(){
+  const d = new Date();
+  const ultimoDia = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+}
+function setDefaultDateFilters(){
+  const de = primeiroDiaMesAtual();
+  const ate = ultimoDiaMesAtual();
+  document.getElementById('fl-de').value = de;
+  document.getElementById('fl-ate').value = ate;
+  document.getElementById('gf-de').value = de;
+  document.getElementById('gf-ate').value = ate;
+}
+setDefaultDateFilters();
+document.getElementById('si-data').value = primeiroDiaMesAtual();
+
+loadEntries();
+
+// ===== PWA =====
+(function(){
+  // Service worker (exige HTTPS ou localhost)
+  if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker não registrado:', err));
+    });
+  }
+  // Pede armazenamento persistente: evita que o navegador apague os dados financeiros por falta de espaço
+  if(navigator.storage && navigator.storage.persist){
+    navigator.storage.persist().catch(() => {});
+  }
+  // Botão "Instalar app" (Chrome/Edge/Android). No iOS: Compartilhar > Adicionar à Tela de Início.
+  let deferredPrompt = null;
+  const btnInstalar = document.getElementById('btn-instalar');
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    btnInstalar.classList.add('visivel');
+  });
+  btnInstalar.addEventListener('click', async () => {
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice.catch(() => {});
+    deferredPrompt = null;
+    btnInstalar.classList.remove('visivel');
+  });
+  window.addEventListener('appinstalled', () => { deferredPrompt = null; btnInstalar.classList.remove('visivel'); });
+  // Indicador offline
+  const atualizaRede = () => document.body.classList.toggle('is-offline', !navigator.onLine);
+  window.addEventListener('online', atualizaRede);
+  window.addEventListener('offline', atualizaRede);
+  atualizaRede();
+})();
+</script>
+</body>
+</html>
